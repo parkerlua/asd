@@ -1,3 +1,10 @@
+--[[
+
+    Networph UI Base
+    \ Made by @grclnttacidvrfivwjmtegcpewtlwtma | display is networph
+    / Telegram: https://t.me/networph
+
+]]
 
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
@@ -47,7 +54,7 @@ local Library = {
     LangUpdaters = {},
     Directory = "faafa",
     Folders = { "/Fonts", "/Configs", "/Assets" },
-    -- Short codes; `Lang = { "EN", "ES", ... }` on controls matches this order.
+    -- Short codes. `Lang = { "EN", "ES", ... }` on controls matches this order.
     Langs = { "EN", "ES" },
     -- UI fonts for Settings → Font dropdown. Authors append entries here (see boot block below).
     -- Each: { Name = "Label in menu", FileKey = "unique_disk_stem", Url = "https://.../font.ttf" }
@@ -86,8 +93,13 @@ local Palette = {
         Glow = FromRgb(220, 85, 30):Lerp(FromRgb(255, 255, 255), 0.22),
         Surface = Hex("1E1E1E"),
         TooltipBg = Hex("2A2A2A"),
+        TooltipOutline = Hex("1C1C1C"),
+        TooltipText = Hex("B4B8C0"),
         PillSurface = Hex("222222"),
         InputSurface = Hex("222222"),
+        InputOutline = Hex("1C1C1C"),
+        InputText = Hex("B4B8C0"),
+        InputPlaceholder = Hex("62646A"),
         Inline = Hex("1A1A1A"),
         TextMuted = Hex("8B9099"),
         TextBody = Hex("B4B8C0"),
@@ -96,7 +108,27 @@ local Palette = {
         ItemDivider = Hex("2A2A2A"),
         Line = Hex("363636"),
         ToggleTrackOff = Hex("2C2C34"),
+        ToggleTrackOn = FromRgb(220, 85, 30),
         ToggleKnobOff = Hex("B8B9C0"),
+        ToggleKnobOn = Hex("0C0C0E"),
+        CheckboxBoxOff = Hex("2E2E2E"),
+        CheckboxBoxOn = FromRgb(220, 85, 30),
+        CheckboxOutline = Hex("1C1C1C"),
+        CheckboxCheck = Hex("0B0B0B"),
+        SliderTrack = Hex("2C2C34"),
+        SliderFill = FromRgb(220, 85, 30),
+        SliderKnob = Hex("FFFFFF"),
+        DropdownBg = Hex("222222"),
+        DropdownOutline = Hex("1C1C1C"),
+        DropdownText = Hex("B4B8C0"),
+        KeybindBg = Hex("222222"),
+        KeybindOutline = Hex("1C1C1C"),
+        KeybindText = Hex("B4B8C0"),
+        NotificationBg = Hex("1E1E1E"),
+        NotificationOutline = Hex("1C1C1C"),
+        NotificationTitle = Hex("FFFFFF"),
+        NotificationBody = Hex("B4B8C0"),
+        ScrollbarThumb = Hex("363636"),
         Default = Hex("FFFFFF"),
     },
 }
@@ -191,12 +223,30 @@ local function DeriveHeaderSubtitleColor(Accent)
 end
 
 function Library:KeybindListTitleRichText()
-    local c = Theme.ActiveBg
-    local r = MathFloor(c.R * 255 + 0.5)
-    local g = MathFloor(c.G * 255 + 0.5)
-    local b = MathFloor(c.B * 255 + 0.5)
-    local HexRgb = string.format("#%02X%02X%02X", r, g, b)
-    return string.format('<font color="%s">Keybind</font><font color="#FFFFFF"> list</font>', HexRgb)
+    local Flags = self.Flags or {}
+    local Show = Flags.cfg_keybind_list_show_title
+    if Show == nil then Show = true end
+    if not Show then
+        return "", false
+    end
+
+    local UseRich = Flags.cfg_keybind_list_richtext
+    if UseRich == nil then UseRich = true end
+
+    local Custom = Flags.cfg_keybind_list_custom_title
+    if typeof(Custom) == "string" and Custom ~= "" then
+        return Custom, UseRich == true
+    end
+
+    if UseRich then
+        local c = Theme.ActiveBg
+        local r = MathFloor(c.R * 255 + 0.5)
+        local g = MathFloor(c.G * 255 + 0.5)
+        local b = MathFloor(c.B * 255 + 0.5)
+        local HexRgb = string.format("#%02X%02X%02X", r, g, b)
+        return string.format('<font color="%s">Keybind</font><font color="#FFFFFF"> list</font>', HexRgb), true
+    end
+    return "Keybind list", false
 end
 
 function Library:SetAccentColor(Color3Value)
@@ -583,7 +633,7 @@ function Library:Connection(Signal, Callback)
 end
 
 -- Section controls: invisible hit-absorber + dim key visuals. DimSpecs entries:
--- { Instance, "Property", colorMix?, "transPlus"? } — Color3 lerp toward neutral, or add spec[3] to transparency when mode is "transPlus".
+-- { Instance, "Property", colorMix?, "transPlus"? } - Color3 lerp toward neutral, or add spec[3] to transparency when mode is "transPlus".
 function Library:AttachSetDisabledControl(RowFrame, ZIndex, OnDisabledChange, DimSpecs)
     if typeof(RowFrame) ~= "Instance" or not RowFrame:IsA("GuiObject") then
         return {
@@ -680,7 +730,7 @@ function Library:Hovering(UiObject)
     return M.X >= Ap.X and M.X <= Ap.X + As.X and M.Y >= Ap.Y and M.Y <= Ap.Y + As.Y
 end
 
--- Roblox `InputObject.Position` is a Vector3 (screen X/Y); older code often assumed Vector2.
+-- Roblox `InputObject.Position` is a Vector3 (screen X/Y). Older code often assumed Vector2.
 function Library:_InputPointerXY(input)
     if input then
         local pos = input.Position
@@ -1237,9 +1287,9 @@ end
 Library.IslandNotification = Library.IslandNotify
 
 -- Library:Notify("Title", "Description", durationSec)
--- Library:Notify("Description only", time)        — Obsidian-style 2-arg
+-- Library:Notify("Description only", time)        - Obsidian-style 2-arg
 -- Library:Notify({ Title, Description, Time|Duration, Step, MaxStep|Steps, Persist, SoundId, Icon, BigIcon, IconColor, ... })
--- Library:Notify({ Island = true, Text = "...", Duration = 4, Icon = "person" }) — top dynamic-island pill (see Library:IslandNotify)
+-- Library:Notify({ Island = true, Text = "...", Duration = 4, Icon = "person" }) - top dynamic-island pill (see Library:IslandNotify)
 -- Step bar when MaxStep or Steps > 0 (Step optional, defaults 0). Chain :Button / :SubButton
 -- Entry:ChangeTitle, :ChangeDescription, :ChangeStep / :SetStep, :Destroy
 function Library:Notify(A, B, C)
@@ -1291,7 +1341,7 @@ function Library:Notify(A, B, C)
     local Card = self:CreateInstance("Frame", {
         Parent = Host,
         Name = "notify_card",
-        BackgroundColor3 = Theme.Background,
+        BackgroundColor3 = Theme.NotificationBg,
         BorderSizePixel = 0,
         ClipsDescendants = true,
         Size = NewUDim2(0, NOTIFY_CARD_W, 0, 0),
@@ -1303,9 +1353,9 @@ function Library:Notify(A, B, C)
         Parent = Card,
         CornerRadius = NewUDim(0, 8),
     })
-    self:CreateInstance("UIStroke", {
+    local CardStroke = self:CreateInstance("UIStroke", {
         Parent = Card,
-        Color = Theme.Divider,
+        Color = Theme.NotificationOutline,
         Thickness = 1,
         ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
     })
@@ -1402,7 +1452,7 @@ function Library:Notify(A, B, C)
         AutomaticSize = Enum.AutomaticSize.Y,
         FontFace = Library.Font,
         Text = TitleText,
-        TextColor3 = FromRgb(255, 255, 255),
+        TextColor3 = Theme.NotificationTitle,
         TextSize = 15,
         TextXAlignment = Enum.TextXAlignment.Left,
         TextYAlignment = Enum.TextYAlignment.Top,
@@ -1437,7 +1487,7 @@ function Library:Notify(A, B, C)
         AutomaticSize = Enum.AutomaticSize.Y,
         FontFace = Library.Font,
         Text = DescriptionText,
-        TextColor3 = Theme.TextMuted,
+        TextColor3 = Theme.NotificationBody,
         TextSize = 13,
         TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left,
@@ -1696,7 +1746,7 @@ function Library:TryCloseColorpickerOutside(input)
             local M = UserInputService:GetMouseLocation()
             Px, Py = M.X, M.Y
         end
-        -- Second tap on the glyph closes the modal (trigger is under the open layer; use pointer hit-test).
+        -- Second tap on the glyph closes the modal (trigger is under the open layer, use pointer hit-test).
         if self:PointInGuiObject(Px, Py, Open.trigger) then
             Open.open = false
             Open.set_visible(false)
@@ -1825,9 +1875,10 @@ function Library:_MountColorpicker(Trigger, GlyphLabel, opts)
         interactionBlocked = nil,
     }
     local dragging_sat, dragging_hue, dragging_alpha = false, false, false
+    local LastPointerPosition
     local h, s, v = cfg.color:ToHSV()
     -- Transparency: Roblox-style (0 = solid, 1 = fully clear). Same number as `Library.Flags[cfg.flag].Transparency`.
-    -- 8-char hex uses the last pair as opacity byte (FF = solid); see Hex8FromColor / ParseHex8. UI: `alpha_gradient` strip above the hex row.
+    -- 8-char hex uses the last pair as opacity byte (FF = solid). See Hex8FromColor / ParseHex8. UI: `alpha_gradient` strip above the hex row.
     local a = cfg.alpha
     LibRef.Flags[cfg.flag] = { Color = cfg.color, Transparency = cfg.alpha, Rainbow = cfg.rainbow }
     local items = cfg.items
@@ -2437,15 +2488,12 @@ function Library:_MountColorpicker(Trigger, GlyphLabel, opts)
         cfg.callback(Color, a)
     end
 
-    function cfg.update_color(inputOverride)
-        local px, py
-        if inputOverride and inputOverride.UserInputType == Enum.UserInputType.Touch then
-            px, py = inputOverride.Position.X, inputOverride.Position.Y
-        else
-            local m = UserInputService:GetMouseLocation()
-            px, py = m.X, m.Y
-        end
-        local offset = NewVector2(px, py - GuiService:GetGuiInset().Y)
+    function cfg.update_color()
+        -- Mirror the Optimum colorpicker drag math: pointer comes from the last InputChanged
+        -- event (Mouse or Touch). GuiInset subtracted so pointer lines up with AbsolutePosition
+        -- (ScreenGui has IgnoreGuiInset = true on both PC and mobile).
+        local pointer = LastPointerPosition or UserInputService:GetMouseLocation()
+        local offset = NewVector2(pointer.X, pointer.Y - GuiInset)
         if dragging_sat then
             s = MathClamp((offset - items.sat.AbsolutePosition).X / items.sat.AbsoluteSize.X, 0, 1)
             v = 1 - MathClamp((offset - items.sat.AbsolutePosition).Y / items.sat.AbsoluteSize.Y, 0, 1)
@@ -2470,10 +2518,11 @@ function Library:_MountColorpicker(Trigger, GlyphLabel, opts)
         if not (dragging_sat or dragging_hue or dragging_alpha) then
             return
         end
-        if input.UserInputType == Enum.UserInputType.MouseMovement then
+        if input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch
+        then
+            LastPointerPosition = input.Position
             cfg.update_color()
-        elseif input.UserInputType == Enum.UserInputType.Touch then
-            cfg.update_color(input)
         end
     end)
 
@@ -2482,52 +2531,60 @@ function Library:_MountColorpicker(Trigger, GlyphLabel, opts)
             dragging_sat = false
             dragging_hue = false
             dragging_alpha = false
+            LastPointerPosition = nil
         end
     end)
 
-    LibRef:Connection(items.alpha_gradient.MouseButton1Down, function()
+    local function BeginDrag(target, input)
         cfg._suppress_colorpicker_outside_close = true
         cfg.setRainbow(false)
-        dragging_alpha = true
+        if target == "sat" then
+            dragging_sat = true
+        elseif target == "hue" then
+            dragging_hue = true
+        elseif target == "alpha" then
+            dragging_alpha = true
+        end
+        if input and input.Position then
+            LastPointerPosition = input.Position
+        end
         cfg.update_color()
+    end
+
+    LibRef:Connection(items.alpha_gradient.InputBegan, function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            BeginDrag("alpha", input)
+        end
     end)
     LibRef:Connection(items.alpha_indicator.InputBegan, function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            cfg._suppress_colorpicker_outside_close = true
-            cfg.setRainbow(false)
-            dragging_alpha = true
-            cfg.update_color()
+            BeginDrag("alpha", input)
         end
     end)
-    LibRef:Connection(items.alpha_picker.MouseButton1Down, function()
-        cfg._suppress_colorpicker_outside_close = true
-        cfg.setRainbow(false)
-        dragging_alpha = true
-        cfg.update_color()
+    LibRef:Connection(items.alpha_picker.InputBegan, function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            BeginDrag("alpha", input)
+        end
     end)
-    LibRef:Connection(items.hue_gradient.MouseButton1Down, function()
-        cfg._suppress_colorpicker_outside_close = true
-        cfg.setRainbow(false)
-        dragging_hue = true
-        cfg.update_color()
+    LibRef:Connection(items.hue_gradient.InputBegan, function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            BeginDrag("hue", input)
+        end
     end)
-    LibRef:Connection(items.hue_picker.MouseButton1Down, function()
-        cfg._suppress_colorpicker_outside_close = true
-        cfg.setRainbow(false)
-        dragging_hue = true
-        cfg.update_color()
+    LibRef:Connection(items.hue_picker.InputBegan, function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            BeginDrag("hue", input)
+        end
     end)
-    LibRef:Connection(items.sat.MouseButton1Down, function()
-        cfg._suppress_colorpicker_outside_close = true
-        cfg.setRainbow(false)
-        dragging_sat = true
-        cfg.update_color()
+    LibRef:Connection(items.sat.InputBegan, function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            BeginDrag("sat", input)
+        end
     end)
-    LibRef:Connection(items.satvalpicker.MouseButton1Down, function()
-        cfg._suppress_colorpicker_outside_close = true
-        cfg.setRainbow(false)
-        dragging_sat = true
-        cfg.update_color()
+    LibRef:Connection(items.satvalpicker.InputBegan, function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            BeginDrag("sat", input)
+        end
     end)
     LibRef:Connection(items.rainbow_row.MouseButton1Click, function()
         cfg._suppress_colorpicker_outside_close = true
@@ -2785,9 +2842,9 @@ function Library:GetOrCreateTooltipLayer(ScreenGui)
         Parent = Bubble,
         CornerRadius = NewUDim(0, 6),
     })
-    self:CreateInstance("UIStroke", {
+    local BubbleStroke = self:CreateInstance("UIStroke", {
         Parent = Bubble,
-        Color = Theme.Divider,
+        Color = Theme.TooltipOutline,
         Thickness = 1,
     })
     self:CreateInstance("UIPadding", {
@@ -2802,7 +2859,7 @@ function Library:GetOrCreateTooltipLayer(ScreenGui)
         Name = "TooltipText",
         BackgroundTransparency = 1,
         Text = "",
-        TextColor3 = Theme.TextBody,
+        TextColor3 = Theme.TooltipText,
         TextSize = 12,
         FontFace = Library.Font,
         TextWrapped = true,
@@ -2812,6 +2869,14 @@ function Library:GetOrCreateTooltipLayer(ScreenGui)
         AutomaticSize = Enum.AutomaticSize.Y,
         Active = false,
     })
+
+    Insert(self.AccentUpdaters, function()
+        if Bubble.Parent then
+            Bubble.BackgroundColor3 = Theme.TooltipBg
+            BubbleStroke.Color = Theme.TooltipOutline
+            Lbl.TextColor3 = Theme.TooltipText
+        end
+    end)
 
     entry = {
         Bubble = Bubble,
@@ -3160,13 +3225,14 @@ local function EnsureKeybindList()
         PaddingBottom = NewUDim(0, 4),
     })
 
+    local InitTitleText, InitTitleRich = Library:KeybindListTitleRichText()
     local HeaderTitle = Library:CreateInstance("TextLabel", {
         Name = "Title",
         Parent = Header,
         BackgroundTransparency = 1,
         Size = NewUDim2(1, 0, 0, 16),
-        Text = Library:KeybindListTitleRichText(),
-        RichText = true,
+        Text = InitTitleText,
+        RichText = InitTitleRich,
         TextColor3 = FromRgb(255, 255, 255),
         TextSize = 14,
         TextXAlignment = Enum.TextXAlignment.Left,
@@ -3175,7 +3241,7 @@ local function EnsureKeybindList()
     })
     HeaderTitle.FontFace = Library.Font
 
-    Library:CreateInstance("Frame", {
+    local HeaderDivider = Library:CreateInstance("Frame", {
         Name = "HeaderDivider",
         Parent = Root,
         Position = NewUDim2(0, 0, 0, 30),
@@ -3223,6 +3289,9 @@ local function EnsureKeybindList()
     KB.Gui = Gui
     KB.Root = Root
     KB.Rows = RowsInner
+    KB.Header = Header
+    KB.HeaderDivider = HeaderDivider
+    KB.Body = Body
     KB.HeaderTitle = HeaderTitle
     KB.HeaderH = 30
     KB.RowH = 22
@@ -3232,6 +3301,7 @@ local function EnsureKeybindList()
     KB.MinimumWidth = 220
 
     Library:MakeDraggable(Root, Header)
+    Library:MakeDraggable(Root, Root)
 
     if not KB._ListRowKeyToggleHooked then
         KB._ListRowKeyToggleHooked = true
@@ -3393,17 +3463,38 @@ function Library.KeybindList:Refresh()
         end
     end
 
+    local Flags = Library.Flags or {}
+    local ShowTitle = Flags.cfg_keybind_list_show_title
+    if ShowTitle == nil then ShowTitle = true end
+
+    if KB.Header then KB.Header.Visible = ShowTitle end
+    if KB.HeaderDivider then KB.HeaderDivider.Visible = ShowTitle end
+    if KB.Body then
+        if ShowTitle then
+            KB.Body.Position = NewUDim2(0, 0, 0, KB.HeaderH + 1)
+            KB.Body.Size = NewUDim2(1, 0, 1, -(KB.HeaderH + 1))
+        else
+            KB.Body.Position = NewUDim2(0, 0, 0, 0)
+            KB.Body.Size = NewUDim2(1, 0, 1, 0)
+        end
+    end
+
+    local HeaderOffset = ShowTitle and (KB.HeaderH + 1) or 0
+
     if VisibleCount <= 0 then
-        KB.HeaderTitle.Text = '<font color="#8B9099">No keybinds</font>'
-        KB.HeaderTitle.RichText = true
-        KB.Root.Size = NewUDim2(0, KB.MinimumWidth, 0, KB.HeaderH + KB.UnderHeaderPad)
+        if ShowTitle then
+            KB.HeaderTitle.Text = '<font color="#8B9099">No keybinds</font>'
+            KB.HeaderTitle.RichText = true
+        end
+        KB.Root.Size = NewUDim2(0, KB.MinimumWidth, 0, HeaderOffset + KB.UnderHeaderPad)
         return
     end
 
-    KB.HeaderTitle.Text = Library:KeybindListTitleRichText()
-    KB.HeaderTitle.RichText = true
+    local TitleText, TitleRich = Library:KeybindListTitleRichText()
+    KB.HeaderTitle.Text = TitleText
+    KB.HeaderTitle.RichText = TitleRich
     local innerH = VisibleCount * KB.RowH + MathMax(0, VisibleCount - 1) * KB.RowGap
-    KB.Root.Size = NewUDim2(0, KB.MinimumWidth, 0, KB.HeaderH + 1 + KB.BodyPadY + innerH)
+    KB.Root.Size = NewUDim2(0, KB.MinimumWidth, 0, HeaderOffset + KB.BodyPadY + innerH)
 end
 
 function Library.KeybindList:Register(Id, Name, Key, Active, Toggleable, OnToggle, Enabled)
@@ -3466,7 +3557,7 @@ function Library.KeybindList:SetVisible(IsVisible)
     self.Gui.Enabled = IsVisible == nil and true or IsVisible
 end
 
--- `game.Name` is often the literal "UGC" for UGC experiences; catalog name is readable.
+-- `game.Name` is often the literal "UGC" for UGC experiences. Catalog name is readable.
 local function ResolveWatermarkPlaceName()
     local PlaceId = game.PlaceId
     if typeof(PlaceId) == "number" and PlaceId > 0 then
@@ -3687,10 +3778,17 @@ function Library:Watermark(TitleStr)
             if not Card.Parent or not TitleBadge.Parent or not InfoLbl.Parent then
                 return
             end
+            -- AbsoluteSize / TextBounds are in RENDERED (scaled) pixels when UIScale is applied
+            -- on the ScreenGui, but Card.Size and the Pad* values are in unscaled pixels.
+            -- Divide measured sizes by the UIScale so every term in the sum is in unscaled units.
+            local uis = Gui:FindFirstChildOfClass("UIScale")
+            local scale = (uis and uis.Scale) or 1
+            if scale <= 0 then scale = 1 end
+
             local BadgeShown = TitleBadge.Visible and TitleText.Text ~= ""
             local Gap = (BadgeShown and InfoLbl.Text ~= "") and 14 or 0
-            local TitleWidth = BadgeShown and math.max(0, TitleBadge.AbsoluteSize.X) or 0
-            local InfoWidth = math.max(0, InfoLbl.TextBounds.X)
+            local TitleWidth = BadgeShown and math.max(0, TitleBadge.AbsoluteSize.X / scale) or 0
+            local InfoWidth = math.max(0, InfoLbl.TextBounds.X / scale)
             TitleBadge.Position = NewUDim2(0, 0, 0.5, 0)
             InfoLbl.Position = NewUDim2(0, TitleWidth + Gap, 0.5, 0)
             local Width = math.max(210, MathFloor(PadOuterLeft + TitleWidth + Gap + InfoWidth + PadOuterRight))
@@ -4114,7 +4212,7 @@ function Library:_MountSectionViewport(Scrolling, Id, Opt)
     return ViewportApi
 end
 
--- Section VideoFrame. ShowControls (default true): tap video to toggle; brief center flash (white play/pause + pulsing disc).
+-- Section VideoFrame. ShowControls (default true): tap video to toggle, brief center flash (white play/pause + pulsing disc).
 -- ShowScrubber (default true): time labels + seek bar under the clip (drag or click). Set ShowScrubber = false to hide.
 -- Scrubber uses VideoFrame.TimeLength + TimePosition (Duration is not a valid member on VideoFrame).
 function Library:_MountSectionVideo(Scrolling, Id, Opt)
@@ -4232,7 +4330,7 @@ function Library:_MountSectionVideo(Scrolling, Id, Opt)
 
     local flashToken = 0
     if ShowControls then
-        -- https://github.com/cascade-v/44/tree/main/rift — video-play-white.png / video-pause-white.png
+
         local PlayIconId = self:TabIcon("video-play-white")
         local PauseIconId = self:TabIcon("video-pause-white")
 
@@ -4550,7 +4648,7 @@ function Library:_MountSectionVideo(Scrolling, Id, Opt)
             if not VideoHost.Parent or not ScrubRow or not ScrubRow.Parent then
                 return
             end
-            -- Only rewrite TimePosition while input is held; avoids stuck drag fighting playback.
+            -- Only rewrite TimePosition while input is held, avoids stuck drag fighting playback.
             if scrubDragging then
                 local mb1 = UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1)
                 local touches = UserInputService:GetTouches()
@@ -5079,7 +5177,7 @@ function Library:CreateSettingsSection(parent, spec)
         ScrollingDirection = Enum.ScrollingDirection.Y,
         ScrollBarThickness = 2,
         ScrollBarImageTransparency = 0.4,
-        ScrollBarImageColor3 = Theme.Divider,
+        ScrollBarImageColor3 = Theme.ScrollbarThumb,
         Active = true,
         ClipsDescendants = true,
         ZIndex = 4,
@@ -5183,11 +5281,11 @@ function Library:CreateSettingsSection(parent, spec)
             ClearTextOnFocus = false,
             FontFace = Library.Font,
             PlaceholderText = tostring(Placeholder),
-            PlaceholderColor3 = Theme.TextMuted,
+            PlaceholderColor3 = Theme.InputPlaceholder,
             Position = NewUDim2(0, 0, 0, 0),
             Size = NewUDim2(1, 0, 0, 30),
             Text = DefaultText,
-            TextColor3 = Theme.TextBody,
+            TextColor3 = Theme.InputText,
             TextSize = 13,
             TextTruncate = Enum.TextTruncate.AtEnd,
             TextXAlignment = Enum.TextXAlignment.Left,
@@ -5197,6 +5295,11 @@ function Library:CreateSettingsSection(parent, spec)
         LibraryRef:CreateInstance("UICorner", {
             Parent = Box,
             CornerRadius = NewUDim(0, 6),
+        })
+        local BoxStroke = LibraryRef:CreateInstance("UIStroke", {
+            Parent = Box,
+            Color = Theme.InputOutline,
+            Thickness = 1,
         })
         LibraryRef:CreateInstance("UIPadding", {
             Parent = Box,
@@ -5224,8 +5327,9 @@ function Library:CreateSettingsSection(parent, spec)
             end
             if Box.Parent then
                 Box.BackgroundColor3 = Theme.InputSurface
-                Box.PlaceholderColor3 = Theme.TextMuted
-                Box.TextColor3 = Theme.TextBody
+                Box.PlaceholderColor3 = Theme.InputPlaceholder
+                Box.TextColor3 = Theme.InputText
+                BoxStroke.Color = Theme.InputOutline
             end
         end)
 
@@ -5355,7 +5459,7 @@ function Library:CreateSettingsSection(parent, spec)
 
         LibraryRef:Connection(ChevBtn.MouseButton1Click, ToggleDepGroup)
 
-        -- Only hook the label: InputBegan bubbles to TextHolder; wiring both would call
+        -- Only hook the label: InputBegan bubbles to TextHolder, wiring both would call
         -- ToggleDepGroup twice (no net change, chevron appears stuck).
         TextHolder.Active = false
         NameLabel.Active = true
@@ -6137,7 +6241,7 @@ function Library:CreateSettingsSection(parent, spec)
             Parent = ToggleCluster,
             Name = "toggle_track",
             Size = NewUDim2(1, 0, 1, 0),
-            BackgroundColor3 = DefaultOn and Theme.ActiveBg or Theme.ToggleTrackOff,
+            BackgroundColor3 = DefaultOn and Theme.ToggleTrackOn or Theme.ToggleTrackOff,
             BorderSizePixel = 0,
             ZIndex = 1,
         })
@@ -6151,7 +6255,7 @@ function Library:CreateSettingsSection(parent, spec)
             Parent = ToggleCluster,
             Name = "toggle_knob",
             Size = NewUDim2(0, 16, 0, 16),
-            BackgroundColor3 = DefaultOn and FromRgb(12, 12, 14) or Theme.ToggleKnobOff,
+            BackgroundColor3 = DefaultOn and Theme.ToggleKnobOn or Theme.ToggleKnobOff,
             BorderSizePixel = 0,
             ZIndex = 2,
         })
@@ -6175,8 +6279,8 @@ function Library:CreateSettingsSection(parent, spec)
         local trackTween, knobTween, labelTween, glowTween
 
         local function ApplyToggleVisual(On, Animated)
-            local trackColor = On and Theme.ActiveBg or Theme.ToggleTrackOff
-            local knobColor = On and FromRgb(12, 12, 14) or Theme.ToggleKnobOff
+            local trackColor = On and Theme.ToggleTrackOn or Theme.ToggleTrackOff
+            local knobColor = On and Theme.ToggleKnobOn or Theme.ToggleKnobOff
             local labelColor = ToggleLabelColor(On)
             local targetPos = On and NewUDim2(1, -19, 0.5, 0) or NewUDim2(0, 3, 0.5, 0)
             -- Lower value = stronger glow (0 = opaque). ~0.38 keeps halo visible without the old huge bloom.
@@ -6437,7 +6541,7 @@ function Library:CreateSettingsSection(parent, spec)
         return self:AddToggle(options)
     end
 
-    -- Same API/behavior as AddToggle; square checkbox + checkmark instead of pill switch.
+    -- Same API/behavior as AddToggle. Square checkbox + checkmark instead of pill switch.
     function SectionApi:AddCheckbox(options)
         local Opt = typeof(options) == "table" and options or {}
         local rawLabel = typeof(options) == "string" and options or (Opt.Name or Opt.name or "Checkbox")
@@ -6565,7 +6669,7 @@ function Library:CreateSettingsSection(parent, spec)
             Parent = CheckboxCluster,
             Name = "checkbox_box",
             Size = NewUDim2(1, 0, 1, 0),
-            BackgroundColor3 = DefaultOn and Theme.ActiveBg or Theme.Control,
+            BackgroundColor3 = DefaultOn and Theme.CheckboxBoxOn or Theme.CheckboxBoxOff,
             BorderSizePixel = 0,
             ZIndex = 1,
         })
@@ -6577,7 +6681,7 @@ function Library:CreateSettingsSection(parent, spec)
 
         local CheckStroke = LibraryRef:CreateInstance("UIStroke", {
             Parent = CheckSurface,
-            Color = Theme.Divider,
+            Color = Theme.CheckboxOutline,
             Thickness = 1,
         })
 
@@ -6590,7 +6694,7 @@ function Library:CreateSettingsSection(parent, spec)
             Position = NewUDim2(0.5, 0, 0.5, 0),
             Size = NewUDim2(0, 11, 0, 11),
             Image = LibraryRef:TabIcon("checkbold"),
-            ImageColor3 = Theme.ActiveFg,
+            ImageColor3 = Theme.CheckboxCheck,
             ImageTransparency = DefaultOn and 0 or 1,
             ScaleType = Enum.ScaleType.Fit,
             ZIndex = 2,
@@ -6610,10 +6714,11 @@ function Library:CreateSettingsSection(parent, spec)
         local boxTween, labelTween, iconTween, strokeTween, glowTween
 
         local function ApplyCheckboxVisual(On, Animated)
-            local boxColor = On and Theme.ActiveBg or Theme.Control
+            local boxColor = On and Theme.CheckboxBoxOn or Theme.CheckboxBoxOff
             local labelColor = CheckboxLabelColor(On)
             local iconTrans = On and 0 or 1
-            local strokeColor = Theme.Divider
+            local strokeColor = Theme.CheckboxOutline
+            CheckIcon.ImageColor3 = Theme.CheckboxCheck
             local glowTransparency = On and 0.38 or 1
             local glowColor = Theme.Glow
 
@@ -6884,7 +6989,7 @@ function Library:CreateSettingsSection(parent, spec)
         local IgnoreGameProcessed = Opt.IgnoreGameProcessed == true or Opt.ignoreGameProcessed == true
         local ClearOnSecondary = Opt.ClearOnSecondary ~= false and Opt.clearOnSecondary ~= false
         -- `List` / `list` (default true): when false, row is hidden from the keybind list overlay.
-        -- `KeybindList` / `keybindList` kept for compatibility; any false opts out.
+        -- `KeybindList` / `keybindList` kept for compatibility. Any false opts out.
         local UseKeybindList = Opt.List ~= false
             and Opt.list ~= false
             and Opt.KeybindList ~= false
@@ -6974,7 +7079,7 @@ function Library:CreateSettingsSection(parent, spec)
             Name = IsCompact and "keybind_value_compact" or "keybind_value",
             AutoButtonColor = false,
             Text = "",
-            BackgroundColor3 = Theme.PillSurface,
+            BackgroundColor3 = Theme.KeybindBg,
             BorderSizePixel = 0,
             Size = NewUDim2(0, 0, 1, 0),
             AutomaticSize = Enum.AutomaticSize.X,
@@ -6988,7 +7093,7 @@ function Library:CreateSettingsSection(parent, spec)
 
         local KeyStroke = LibraryRef:CreateInstance("UIStroke", {
             Parent = KeyBtn,
-            Color = Theme.Divider,
+            Color = Theme.KeybindOutline,
             Thickness = 1,
         })
 
@@ -7021,7 +7126,7 @@ function Library:CreateSettingsSection(parent, spec)
             AutomaticSize = Enum.AutomaticSize.XY,
             FontFace = Library.Font,
             Text = LibraryRef:FormatKeybindDisplay(Current),
-            TextColor3 = FromRgb(255, 255, 255),
+            TextColor3 = Theme.KeybindText,
             TextSize = IsCompact and 12 or 13,
             TextXAlignment = Enum.TextXAlignment.Center,
             TextYAlignment = Enum.TextYAlignment.Center,
@@ -7046,7 +7151,7 @@ function Library:CreateSettingsSection(parent, spec)
                 if not ValueLabel.Parent then
                     return
                 end
-                -- TextBounds matches rendered text; GetTextSize(custom Font) can error on some executors.
+                -- TextBounds matches rendered text. GetTextSize(custom Font) can error on some executors.
                 local textW = ValueLabel.TextBounds.X
                 local w = MathMax(KeyBtnMinW, MathFloor(textW + 0.5) + padX + extra)
                 KeyBtnSizeConstraint.MinSize = NewVector2(w, KeyBtnMinH)
@@ -7295,11 +7400,16 @@ function Library:CreateSettingsSection(parent, spec)
             return KbDis and KbDis:IsDisabled() or false
         end
 
-        if KbDis then
-            Insert(LibraryRef.AccentUpdaters, function()
+        Insert(LibraryRef.AccentUpdaters, function()
+            if KeyBtn.Parent then
+                KeyBtn.BackgroundColor3 = Theme.KeybindBg
+                KeyStroke.Color = Theme.KeybindOutline
+                ValueLabel.TextColor3 = Theme.KeybindText
+            end
+            if KbDis then
                 KbDis:SyncDimAfterTheme()
-            end)
-        end
+            end
+        end)
 
         return KeybindOut
     end
@@ -7453,7 +7563,7 @@ function Library:CreateSettingsSection(parent, spec)
             AnchorPoint = NewVector2(0, 0.5),
             Position = NewUDim2(0, 1, 0.5, 0),
             Size = NewUDim2(1, -1, 0, 5),
-            BackgroundColor3 = Theme.ToggleTrackOff,
+            BackgroundColor3 = Theme.SliderTrack,
             BorderSizePixel = 0,
             ZIndex = 1,
         })
@@ -7498,7 +7608,7 @@ function Library:CreateSettingsSection(parent, spec)
             AnchorPoint = NewVector2(0, 0.5),
             Position = NewUDim2(0, 0, 0.5, 0),
             Size = NewUDim2(0, 0, 0, 4),
-            BackgroundColor3 = Theme.ActiveBg,
+            BackgroundColor3 = Theme.SliderFill,
             BorderSizePixel = 0,
             Active = false,
             ZIndex = 3,
@@ -7520,7 +7630,7 @@ function Library:CreateSettingsSection(parent, spec)
             Size = NewUDim2(0, ThumbSizePx, 0, ThumbSizePx),
             AutoButtonColor = false,
             Text = "",
-            BackgroundColor3 = FromRgb(255, 255, 255),
+            BackgroundColor3 = Theme.SliderKnob,
             BorderSizePixel = 0,
             ZIndex = 5,
         })
@@ -7666,7 +7776,9 @@ function Library:CreateSettingsSection(parent, spec)
         end, SliderDimList)
 
         Insert(LibraryRef.AccentUpdaters, function()
-            Fill.BackgroundColor3 = Theme.ActiveBg
+            Rail.BackgroundColor3 = Theme.SliderTrack
+            Fill.BackgroundColor3 = Theme.SliderFill
+            Thumb.BackgroundColor3 = Theme.SliderKnob
             FillGlowImg.ImageColor3 = Theme.Glow
             ApplyVisual()
             SliderDis:SyncDimAfterTheme()
@@ -7827,9 +7939,9 @@ function Library:CreateSettingsSection(parent, spec)
             end
         end
         if #OptionDisplayBase == 0 then
-            Insert(OptionDisplayBase, "—")
+            Insert(OptionDisplayBase, "None")
             Insert(OptionLangSpecs, nil)
-            Insert(OptionValues, "—")
+            Insert(OptionValues, "None")
             Insert(OptionKeybinds, nil)
         end
 
@@ -7975,7 +8087,7 @@ function Library:CreateSettingsSection(parent, spec)
             Name = "dropdown_trigger",
             AutoButtonColor = false,
             Text = "",
-            BackgroundColor3 = Theme.PillSurface,
+            BackgroundColor3 = Theme.DropdownBg,
             BorderSizePixel = 0,
             Size = NewUDim2(0, 0, 1, 0),
             AutomaticSize = Enum.AutomaticSize.X,
@@ -7985,6 +8097,12 @@ function Library:CreateSettingsSection(parent, spec)
         LibraryRef:CreateInstance("UICorner", {
             Parent = Trigger,
             CornerRadius = NewUDim(0, DROPDOWN_CORNER),
+        })
+
+        local TriggerStroke = LibraryRef:CreateInstance("UIStroke", {
+            Parent = Trigger,
+            Color = Theme.DropdownOutline,
+            Thickness = 1,
         })
 
         LibraryRef:CreateInstance("UIPadding", {
@@ -8023,7 +8141,7 @@ function Library:CreateSettingsSection(parent, spec)
             AutomaticSize = Enum.AutomaticSize.XY,
             FontFace = Library.Font,
             Text = "",
-            TextColor3 = Theme.TextBody,
+            TextColor3 = Theme.DropdownText,
             TextSize = 13,
             TextXAlignment = Enum.TextXAlignment.Left,
             TextYAlignment = Enum.TextYAlignment.Center,
@@ -8472,7 +8590,7 @@ function Library:CreateSettingsSection(parent, spec)
             local ListFrame = LibraryRef:CreateInstance("Frame", {
                 Parent = OpenLayer,
                 Name = "dropdown_list",
-                BackgroundColor3 = Theme.PillSurface,
+                BackgroundColor3 = Theme.DropdownBg,
                 BorderSizePixel = 0,
                 Size = NewUDim2(0, listW, 0, listH),
                 ClipsDescendants = true,
@@ -8495,7 +8613,7 @@ function Library:CreateSettingsSection(parent, spec)
                 AutomaticCanvasSize = Enum.AutomaticSize.Y,
                 ScrollBarThickness = 2,
                 ScrollBarImageTransparency = 0.4,
-                ScrollBarImageColor3 = Theme.Divider,
+                ScrollBarImageColor3 = Theme.ScrollbarThumb,
                 ClipsDescendants = true,
                 ScrollingDirection = Enum.ScrollingDirection.Y,
                 ScrollingEnabled = true,
@@ -8544,17 +8662,18 @@ function Library:CreateSettingsSection(parent, spec)
         end
 
         Insert(LibraryRef.AccentUpdaters, function()
-            Trigger.BackgroundColor3 = Theme.PillSurface
-            ValueLabel.TextColor3 = Theme.TextBody
+            Trigger.BackgroundColor3 = Theme.DropdownBg
+            TriggerStroke.Color = Theme.DropdownOutline
+            ValueLabel.TextColor3 = Theme.DropdownText
             if DropdownState.chevronImg and DropdownState.chevronImg.Parent then
                 DropdownState.chevronImg.ImageColor3 = Theme.TextMuted
             end
             local lf = DropdownState.list
             if lf and lf.Parent then
-                lf.BackgroundColor3 = Theme.PillSurface
+                lf.BackgroundColor3 = Theme.DropdownBg
                 local sc = lf:FindFirstChild("dropdown_scroll", true)
                 if sc and sc:IsA("ScrollingFrame") then
-                    sc.ScrollBarImageColor3 = Theme.Divider
+                    sc.ScrollBarImageColor3 = Theme.ScrollbarThumb
                 end
                 for _, d in ipairs(lf:GetDescendants()) do
                     if d.Name == "check" and d:IsA("ImageLabel") then
@@ -8656,15 +8775,15 @@ function Library:CreateSettingsSection(parent, spec)
                     end
                 end
                 if #OptionDisplayBase == 0 then
-                    Insert(OptionDisplayBase, "—")
+                    Insert(OptionDisplayBase, "-")
                     Insert(OptionLangSpecs, nil)
-                    Insert(OptionValues, "—")
+                    Insert(OptionValues, "-")
                     Insert(OptionKeybinds, nil)
                 end
                 RebuildOptionDisplayStrings()
                 CurrentIndex = 1
                 LibraryRef.Flags[Flag] = 1
-                ValueLabel.Text = OptionStrings[1] or "—"
+                ValueLabel.Text = OptionStrings[1] or "-"
             end,
         }
         function SingleOut:SetDisabled(On)
@@ -9058,7 +9177,7 @@ function Library:CreateSettingsSection(parent, spec)
         end)
     end
 
-    -- Section shell + dividers + plain labels use Theme at build time; keep them in sync when the palette changes.
+    -- Section shell + dividers + plain labels use Theme at build time. Keep them in sync when the palette changes.
     Insert(LibraryRef.AccentUpdaters, function()
         if sectionTitleLabel and sectionTitleLabel.Parent then
             sectionTitleLabel.TextColor3 = Theme.TextMuted
@@ -9070,7 +9189,7 @@ function Library:CreateSettingsSection(parent, spec)
             inline.BackgroundColor3 = Theme.Inline
         end
         if scrolling and scrolling.Parent then
-            scrolling.ScrollBarImageColor3 = Theme.Divider
+            scrolling.ScrollBarImageColor3 = Theme.ScrollbarThumb
         end
         for _, d in ipairs(scrolling:GetDescendants()) do
             if d.Name == "section_divider_line" and d:IsA("Frame") then
@@ -9265,9 +9384,7 @@ function Library:_MountDefaultSettingsContent(SettingsTab, windowObj)
 
     AddPaletteExpandable("Surfaces", {
         { "Pill surface", "PillSurface" },
-        { "Text input", "InputSurface" },
         { "Control", "Control" },
-        { "Tooltip", "TooltipBg" },
     })
 
     AddPaletteExpandable("Text", {
@@ -9284,9 +9401,60 @@ function Library:_MountDefaultSettingsContent(SettingsTab, windowObj)
         { "Glow", "Glow" },
     })
 
-    AddPaletteExpandable("Toggles", {
-        { "Toggle track (off)", "ToggleTrackOff" },
-        { "Toggle knob (off)", "ToggleKnobOff" },
+    AddPaletteExpandable("Tooltip", {
+        { "Background", "TooltipBg" },
+        { "Outline", "TooltipOutline" },
+        { "Text", "TooltipText" },
+    })
+
+    AddPaletteExpandable("Text input", {
+        { "Background", "InputSurface" },
+        { "Outline", "InputOutline" },
+        { "Text", "InputText" },
+        { "Placeholder", "InputPlaceholder" },
+    })
+
+    AddPaletteExpandable("Toggle", {
+        { "Track (off)", "ToggleTrackOff" },
+        { "Track (on)", "ToggleTrackOn" },
+        { "Knob (off)", "ToggleKnobOff" },
+        { "Knob (on)", "ToggleKnobOn" },
+    })
+
+    AddPaletteExpandable("Checkbox", {
+        { "Box (off)", "CheckboxBoxOff" },
+        { "Box (on)", "CheckboxBoxOn" },
+        { "Outline", "CheckboxOutline" },
+        { "Check mark", "CheckboxCheck" },
+    })
+
+    AddPaletteExpandable("Slider", {
+        { "Track", "SliderTrack" },
+        { "Fill", "SliderFill" },
+        { "Knob", "SliderKnob" },
+    })
+
+    AddPaletteExpandable("Dropdown", {
+        { "Background", "DropdownBg" },
+        { "Outline", "DropdownOutline" },
+        { "Text", "DropdownText" },
+    })
+
+    AddPaletteExpandable("Keybind", {
+        { "Background", "KeybindBg" },
+        { "Outline", "KeybindOutline" },
+        { "Text", "KeybindText" },
+    })
+
+    AddPaletteExpandable("Notification", {
+        { "Background", "NotificationBg" },
+        { "Outline", "NotificationOutline" },
+        { "Title", "NotificationTitle" },
+        { "Body", "NotificationBody" },
+    })
+
+    AddPaletteExpandable("Scrollbar", {
+        { "Thumb", "ScrollbarThumb" },
     })
 
     local ConfigSection = SettingsTab:AddSection("Config", { Side = "right" })
@@ -9596,11 +9764,42 @@ function Library:_MountDefaultSettingsContent(SettingsTab, windowObj)
         end,
     })
 
+    local function KbRefreshTitle()
+        if Library.KeybindList and typeof(Library.KeybindList.Refresh) == "function" then
+            Library.KeybindList:Refresh()
+        end
+    end
+
     SettingsMenu:AddCheckbox({
         Name = "Keybind list",
         default = true,
         flag = "cfg_keybind_list_visible",
         Tooltip = "Show or hide the draggable keybind list overlay.",
+        dependencies = function(D)
+            D:AddTextInput({
+                Name = "Custom title",
+                default = "",
+                flag = "cfg_keybind_list_custom_title",
+                Placeholder = "Keybind list",
+                callback = function()
+                    KbRefreshTitle()
+                end,
+            })
+            D:AddCheckbox({
+                Name = "RichText",
+                default = true,
+                flag = "cfg_keybind_list_richtext",
+                Tooltip = "Render the title as rich text (<b>, <font>, etc.). Off prints tags literally.",
+                callback = KbRefreshTitle,
+            })
+            D:AddCheckbox({
+                Name = "Show title",
+                default = true,
+                flag = "cfg_keybind_list_show_title",
+                Tooltip = "Hide the title row at the top of the overlay.",
+                callback = KbRefreshTitle,
+            })
+        end,
         callback = function(on)
             Library.KeybindList:SetVisible(on)
         end,
@@ -9628,26 +9827,43 @@ function Library:_MountMobileWindowChrome(WindowObject, buttonsSide)
     })
     self._MobileChromeGui = ChromeGui
     local right = buttonsSide == "Right"
-    local pad = 10
+    local padX = 10
+    local padY = 30
+
+    local TitleText = "UI"
+    if WindowObject.HeaderTitle and WindowObject.HeaderTitle.Text ~= "" then
+        TitleText = WindowObject.HeaderTitle.Text
+    end
 
     local ToggleBtn = self:CreateInstance("TextButton", {
         Parent = ChromeGui,
         Name = "MobileToggleUi",
         AutoButtonColor = false,
-        Text = "UI",
+        Text = TitleText,
         FontFace = Library.Font,
         TextSize = 14,
         TextColor3 = Theme.Default,
         BackgroundColor3 = Theme.PillSurface,
         BorderSizePixel = 0,
-        Size = NewUDim2(0, 52, 0, 36),
+        -- AutomaticSize so long titles fit. Min width keeps the hit target tap-friendly.
+        Size = NewUDim2(0, 0, 0, 36),
+        AutomaticSize = Enum.AutomaticSize.X,
         ZIndex = 10,
+    })
+    self:CreateInstance("UIPadding", {
+        Parent = ToggleBtn,
+        PaddingLeft = NewUDim(0, 14),
+        PaddingRight = NewUDim(0, 14),
+    })
+    self:CreateInstance("UISizeConstraint", {
+        Parent = ToggleBtn,
+        MinSize = NewVector2(52, 36),
     })
     if right then
         ToggleBtn.AnchorPoint = NewVector2(1, 0)
-        ToggleBtn.Position = NewUDim2(1, -pad, 0, pad)
+        ToggleBtn.Position = NewUDim2(1, -padX, 0, padY)
     else
-        ToggleBtn.Position = NewUDim2(0, pad, 0, pad)
+        ToggleBtn.Position = NewUDim2(0, padX, 0, padY)
     end
     self:CreateInstance("UICorner", {
         Parent = ToggleBtn,
@@ -9823,7 +10039,7 @@ function Library:Window(SizeOrProperties)
             Scale = WindowScale,
         })
         -- After UIScale applies, re-center using the actual rendered size.
-        -- Some executors' ViewportSize lags by a frame; task.defer ensures final correction.
+        -- Some executors' ViewportSize lags by a frame. task.defer ensures final correction.
         task.defer(function()
             if not Main.Parent then return end
             local vp2 = Camera.ViewportSize
@@ -10220,7 +10436,7 @@ function Library:Window(SizeOrProperties)
         PaddingRight = NewUDim(0, 12),
     })
 
-    -- Tab highlight is drawn on each row Btn (no sliding layer — avoids gaps / clipping vs icon row).
+    -- Tab highlight is drawn on each row Btn (no sliding layer - avoids gaps / clipping vs icon row).
     local TabNavStack = self:CreateInstance("Frame", {
         Name = "TabNavStack",
         Parent = TabsList,
@@ -10271,7 +10487,7 @@ function Library:Window(SizeOrProperties)
         AutomaticCanvasSize = Enum.AutomaticSize.Y,
         ScrollingDirection = Enum.ScrollingDirection.Y,
         ScrollBarThickness = 3,
-        ScrollBarImageColor3 = Theme.Divider,
+        ScrollBarImageColor3 = Theme.ScrollbarThumb,
         ScrollingEnabled = true,
         Active = true,
         ClipsDescendants = true,
@@ -10823,7 +11039,7 @@ function Library:Window(SizeOrProperties)
         return { name = tostring(A) }
     end
 
-    -- Optimum-style: pill track + sliding chip; icon + label (inactive vs active fg).
+    -- Optimum-style: pill track + sliding chip. Icon + label (inactive vs active fg).
     local function MultiTabSliderFillColor()
         return Theme.PillSurface:Lerp(Theme.Control, 0.11)
     end
@@ -11370,8 +11586,8 @@ function Library:Window(SizeOrProperties)
 
     self:MakeDraggable(Main, Main)
     -- Extra drag surfaces so you can grab the window from any bare area on mobile
-    -- (title bar alone is a tiny target; sidebar/header image are safe because
-    --  their interactive children — tab buttons — absorb their own input).
+    -- (title bar alone is a tiny target, sidebar/header image are safe because
+    --  their interactive children - tab buttons - absorb their own input).
     self:MakeDraggable(Main, TitleBar)
     self:MakeDraggable(Main, HeaderImage)
     self:MakeDraggable(Main, Sidebar)
@@ -11558,7 +11774,7 @@ function Library:Window(SizeOrProperties)
             TabNavStack.BackgroundColor3 = Theme.Background
         end
         if ContentScroll.Parent then
-            ContentScroll.ScrollBarImageColor3 = Theme.Divider
+            ContentScroll.ScrollBarImageColor3 = Theme.ScrollbarThumb
         end
         if SidebarProfile.Parent then
             SidebarProfile.BackgroundColor3 = Theme.Surface
@@ -11727,6 +11943,8 @@ function Library:Destroy()
     self.LangUpdaters = {}
 end
 
+
+
 -- Window size plus the big title and subtitle in the header strip
 local Win = Library:Window({
     Size = UDim2.fromOffset(800, 560),
@@ -11756,7 +11974,148 @@ local TabSection = {
 -- runs after Misc, Settings shows up beside Misc under Other.
 Win:ApplySettings(TabSection)
 
+-- Example: pass { Side = "Right" } to pin right, or { Collapsible = false } to lock it open.
+-- Tab:AddSection("Name") | Tab:AddSection("Name", { Side = "Right", Collapsible = false })
+local CombatExample = TabSection.Combat:AddSection("Example")
+
+-- Pill switch. Returns a toggle API. chain :AddKeybind / :AddColorpicker for extras.
+-- The addons are shown below.
+CombatExample:AddToggle({
+    Name = "Example toggle",
+    Default = false,
+    Flag = "CombatExampleToggle",     -- read back via Library.Flags["..."]
+    Tooltip = "Hover text. Omit to skip.",
+    Risky = false,                    -- true paints the label red when on
+    Callback = function(On) end,      -- fires on every flip
+})
+
+-- Toggle addons. The chain adds a colorpicker + keybind to the same row.
+-- Both inherit the toggle's Name if you don't pass one.
+CombatExample:AddToggle({
+    Name = "Toggle with addons",
+    Default = false,
+    Flag = "CombatAddonToggle",
+    Callback = function(On) end,
+})
+    :AddColorpicker({
+        Flag = "CombatAddonColor",
+        Color = Color3.fromRGB(255, 60, 60),
+        Transparency = 0,             -- 0 fully opaque, 1 fully clear
+        Callback = function(Col, Alpha) end,
+    })
+    -- OR | Both can be added, but it doesnt look great
+    :AddKeybind({
+        Default = Enum.KeyCode.E,     -- or a string like "E", or "MouseButton3"
+        Flag = "CombatAddonKey",
+        Callback = function() end,
+    })
+
+-- Same API as AddToggle, just a square box with a checkmark instead of a pill.
+CombatExample:AddCheckbox({
+    Name = "Example checkbox",
+    Default = true,
+    Flag = "CombatExampleCheckbox",
+    Callback = function(On) end,
+})
+
+-- Numeric slider. Rounding sets the step (1 = integer, 0.1 = one decimal).
+CombatExample:AddSlider({
+    Name = "Example slider",
+    Min = 0,
+    Max = 100,
+    Default = 25,
+    Rounding = 1,
+    Flag = "CombatExampleSlider",
+    Callback = function(Value) end,   -- Value is the current number
+})
+
+-- Plain text row. Use RichText = true to enable <b>, <font>, etc.
+CombatExample:AddLabel("Plain info label")
+CombatExample:AddLabel({
+    Text = "<b>Rich</b> <font color='#6BCFAE'>label</font>",
+    RichText = true,
+})
+
+-- Copyable link. Clicking the copy icon writes Copy (or the Text itself if Copy is omitted).
+CombatExample:AddLinkLabel({
+    Text = "discord.gg/example",
+    Copy = "https://discord.gg/example",
+})
+
+-- Standalone colorpicker row (no toggle attached).
+CombatExample:AddColorpicker({
+    Name = "Accent",
+    Color = Color3.fromRGB(88, 196, 220),
+    Transparency = 0,
+    Flag = "CombatAccentColor",
+    Callback = function(Col, Alpha) end,
+})
+
+-- Standalone keybind row.
+CombatExample:AddKeybind({
+    Name = "Panic key",
+    Default = Enum.KeyCode.P,
+    Flag = "CombatPanicKey",
+    Callback = function() end,        -- fires on press
+})
+
+-- Single-select dropdown. Options can be strings or { Text = "...", Value = ... }.
+CombatExample:AddDropdown({
+    Name = "Target part",
+    Options = { "Head", "Torso", "HumanoidRootPart" },
+    Default = "Head",
+    Flag = "CombatTargetPart",
+    Callback = function(Value) end,
+})
+
+-- Multi-select dropdown. Same shape. Default is a list. Callback gets the set.
+CombatExample:AddDropdown({
+    Name = "Ignore teams",
+    Multi = true,
+    Options = { "Red", "Blue", "Green" },
+    Default = { "Red" },
+    Flag = "CombatIgnoreTeams",
+    Callback = function(Selected) end, -- Selected is { Red = true, ... }
+})
+
+-- Expandable group. Everything added to D inside Dependencies lives under the
+-- header and can be folded away with the chevron.
+CombatExample:AddExpandableGroup({
+    Name = "Advanced",
+    Dependencies = function(D)
+        D:AddToggle({ Name = "Sub toggle", Default = false })
+        D:AddSlider({ Name = "Sub slider", Min = 0, Max = 10, Default = 3 })
+        D:AddColorpicker({ Name = "Sub color", Color = Color3.fromRGB(255, 255, 255) })
+    end,
+})
+
 -- Line of text under the profile picture. Second argument true = scrub the name to Hidden
 Library:UserSectionSet("Till: Never", true)
+
+--[[
+Notifications: Library:Notify (top-left cards) and Library:IslandNotify (top pill).
+Every call returns an Entry with :Destroy / :ChangeTitle / :ChangeDescription / :SetStep.
+
+-> Short form: Library:Notify("Title", "Body", 3)   |   Library:Notify("Body only", 2)
+
+-> Full form: Library:Notify({
+    Title, Description, Duration (or Time), Icon, IconColor,
+    SoundId,        -- optional one-shot sound
+    Persist = true, -- stays until user dismisses
+    MaxStep, Step,  -- progress bar. call entry:SetStep(n) to advance
+    Island = true,  -- route to IslandNotify instead
+})
+
+-> Action buttons chain. :Button = accent, :SubButton = muted. Clicking closes
+   unless the button opts pass KeepOpen = true.
+Library:Notify({ Title = "Update", Duration = 10 })
+    :Button({ Text = "Open", Callback = function() end })
+    :SubButton("Later", function() end)
+
+-> Island pill is the same shapes: Library:IslandNotify("text", 3) or a full table.
+Library:IslandNotify({ Text = "...", Duration = 4, Icon = "person", IconColor = "#6BCFAE" })
+
+Icon keys: gear / sword / eye / person / default / rbxassetid://... .
+]]--
 
 return Library

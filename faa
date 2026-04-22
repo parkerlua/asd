@@ -9782,11 +9782,17 @@ function Library:Window(SizeOrProperties)
         self._IslandHost.Parent = Gui
     end
 
+    -- Mobile uses UIScale on Main to shrink the whole window. Center math must account
+    -- for the scaled size or the window spawns off-center (and partly off-screen on small viewports).
+    local WindowScale = LibRef.IsMobile and 0.75 or 1
+    local EffectiveW = WindowSize.X.Offset * WindowScale
+    local EffectiveH = WindowSize.Y.Offset * WindowScale
+
     local Main = self:CreateInstance("Frame", {
         Name = "Main",
         Parent = Gui,
         Size = WindowSize,
-        Position = NewUDim2(0.5, -WindowSize.X.Offset / 2, 0.5, -WindowSize.Y.Offset / 2),
+        Position = NewUDim2(0.5, -EffectiveW / 2, 0.5, -EffectiveH / 2),
         BackgroundColor3 = Theme.Background,
         BorderSizePixel = 0,
     })
@@ -9797,7 +9803,7 @@ function Library:Window(SizeOrProperties)
     if LibRef.IsMobile then
         self:CreateInstance("UIScale", {
             Parent = Main,
-            Scale = 0.85,
+            Scale = WindowScale,
         })
     end
 
@@ -11725,5 +11731,3 @@ Win:ApplySettings(TabSection)
 Library:UserSectionSet("Till: Never", true)
 
 return Library
-
-

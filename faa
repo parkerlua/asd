@@ -1,4 +1,296 @@
 --[[ UI ]]
+-- MobileConsole.lua
+-- Run this INSTEAD of main.lua on mobile.
+-- 1. Creates an on-screen console that captures print / warn / runtime errors.
+-- 2. Loads main.lua via readfile + loadstring, so anything it prints/errors shows here.
+
+-- ==============================================================
+--   CONSOLE UI
+-- ==============================================================
+
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+
+local function getParent()
+    if gethui then
+        local ok, h = pcall(gethui)
+        if ok and h then return h end
+    end
+    local okRead = pcall(function() return CoreGui:GetChildren() end)
+    if okRead then return CoreGui end
+    local lp = Players.LocalPlayer
+    if lp then
+        local pg = lp:FindFirstChildOfClass("PlayerGui") or lp:WaitForChild("PlayerGui", 5)
+        if pg then return pg end
+    end
+    return CoreGui
+end
+
+local ConsoleGui = Instance.new("ScreenGui")
+ConsoleGui.Name = "MobileConsole"
+ConsoleGui.IgnoreGuiInset = true
+ConsoleGui.DisplayOrder = 999999
+ConsoleGui.ResetOnSpawn = false
+ConsoleGui.Parent = getParent()
+
+-- Scale for mobile readability.
+local Scale = Instance.new("UIScale")
+Scale.Scale = 1.25
+Scale.Parent = ConsoleGui
+
+local Frame = Instance.new("Frame")
+Frame.Name = "ConsoleFrame"
+Frame.Size = UDim2.fromScale(1, 0.45)
+Frame.Position = UDim2.fromScale(0, 0)
+Frame.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
+Frame.BackgroundTransparency = 0.1
+Frame.BorderSizePixel = 0
+Frame.Parent = ConsoleGui
+
+local Corner = Instance.new("UICorner", Frame)
+Corner.CornerRadius = UDim.new(0, 6)
+
+local Stroke = Instance.new("UIStroke", Frame)
+Stroke.Color = Color3.fromRGB(55, 55, 65)
+Stroke.Thickness = 1
+
+-- Header
+local Header = Instance.new("Frame")
+Header.Size = UDim2.new(1, 0, 0, 34)
+Header.BackgroundColor3 = Color3.fromRGB(28, 28, 34)
+Header.BorderSizePixel = 0
+Header.Parent = Frame
+
+local HeadCorner = Instance.new("UICorner", Header)
+HeadCorner.CornerRadius = UDim.new(0, 6)
+
+-- Mask bottom corners
+local HeadMask = Instance.new("Frame")
+HeadMask.Size = UDim2.new(1, 0, 0.5, 0)
+HeadMask.Position = UDim2.new(0, 0, 0.5, 0)
+HeadMask.BackgroundColor3 = Color3.fromRGB(28, 28, 34)
+HeadMask.BorderSizePixel = 0
+HeadMask.ZIndex = 1
+HeadMask.Parent = Header
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -160, 1, 0)
+Title.Position = UDim2.new(0, 10, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "Mobile Console"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 13
+Title.Font = Enum.Font.GothamBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.ZIndex = 2
+Title.Parent = Header
+
+local function smallButton(name, xOff, color)
+    local b = Instance.new("TextButton")
+    b.Name = name
+    b.Size = UDim2.new(0, 48, 0, 22)
+    b.Position = UDim2.new(1, xOff, 0, 6)
+    b.BackgroundColor3 = color
+    b.Text = name
+    b.TextColor3 = Color3.fromRGB(255, 255, 255)
+    b.TextSize = 11
+    b.Font = Enum.Font.Gotham
+    b.BorderSizePixel = 0
+    b.AutoButtonColor = false
+    b.ZIndex = 2
+    b.Parent = Header
+    local c = Instance.new("UICorner", b)
+    c.CornerRadius = UDim.new(0, 4)
+    return b
+end
+
+local ClearBtn = smallButton("Clear", -56, Color3.fromRGB(60, 60, 70))
+local MinBtn = smallButton("Hide", -110, Color3.fromRGB(60, 60, 70))
+
+-- Body (scrolling log)
+local Scroll = Instance.new("ScrollingFrame")
+Scroll.Size = UDim2.new(1, 0, 1, -34)
+Scroll.Position = UDim2.new(0, 0, 0, 34)
+Scroll.BackgroundTransparency = 1
+Scroll.BorderSizePixel = 0
+Scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+Scroll.ScrollingDirection = Enum.ScrollingDirection.Y
+Scroll.ScrollBarThickness = 4
+Scroll.ScrollBarImageColor3 = Color3.fromRGB(120, 120, 130)
+Scroll.Parent = Frame
+
+local Layout = Instance.new("UIListLayout")
+Layout.Padding = UDim.new(0, 2)
+Layout.SortOrder = Enum.SortOrder.LayoutOrder
+Layout.Parent = Scroll
+
+local Padding = Instance.new("UIPadding")
+Padding.PaddingLeft = UDim.new(0, 8)
+Padding.PaddingRight = UDim.new(0, 8)
+Padding.PaddingTop = UDim.new(0, 6)
+Padding.PaddingBottom = UDim.new(0, 6)
+Padding.Parent = Scroll
+
+-- Add line API
+local LineOrder = 0
+local function addLine(text, color)
+    LineOrder = LineOrder + 1
+    local Line = Instance.new("TextLabel")
+    Line.LayoutOrder = LineOrder
+    Line.Size = UDim2.new(1, 0, 0, 0)
+    Line.AutomaticSize = Enum.AutomaticSize.Y
+    Line.BackgroundTransparency = 1
+    Line.Text = tostring(text)
+    Line.TextColor3 = color or Color3.fromRGB(220, 220, 225)
+    Line.TextSize = 12
+    Line.Font = Enum.Font.Code
+    Line.TextXAlignment = Enum.TextXAlignment.Left
+    Line.TextYAlignment = Enum.TextYAlignment.Top
+    Line.TextWrapped = true
+    Line.Parent = Scroll
+    task.defer(function()
+        Scroll.CanvasPosition = Vector2.new(0, Scroll.AbsoluteCanvasSize.Y)
+    end)
+end
+
+ClearBtn.MouseButton1Click:Connect(function()
+    for _, child in ipairs(Scroll:GetChildren()) do
+        if child:IsA("TextLabel") then child:Destroy() end
+    end
+    LineOrder = 0
+end)
+
+local collapsed = false
+MinBtn.MouseButton1Click:Connect(function()
+    collapsed = not collapsed
+    if collapsed then
+        Frame.Size = UDim2.fromScale(1, 0)
+        Frame.Size = UDim2.new(1, 0, 0, 34)
+        Scroll.Visible = false
+        MinBtn.Text = "Show"
+    else
+        Frame.Size = UDim2.fromScale(1, 0.45)
+        Scroll.Visible = true
+        MinBtn.Text = "Hide"
+    end
+end)
+
+-- Drag
+local dragging, dragStart, startPos
+Header.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = Frame.Position
+    end
+end)
+Header.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        Frame.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+-- ==============================================================
+--   HOOK PRINT / WARN GLOBALLY (via getgenv if available)
+-- ==============================================================
+
+local env = (typeof(getgenv) == "function") and getgenv() or _G
+local origPrint = env.print or print
+local origWarn = env.warn or warn
+
+local function joinArgs(...)
+    local parts = {}
+    for i = 1, select("#", ...) do
+        parts[i] = tostring((select(i, ...)))
+    end
+    return table.concat(parts, " ")
+end
+
+env.print = function(...)
+    addLine(joinArgs(...), Color3.fromRGB(200, 220, 255))
+    pcall(origPrint, ...)
+end
+
+env.warn = function(...)
+    addLine("[WARN] " .. joinArgs(...), Color3.fromRGB(255, 200, 80))
+    pcall(origWarn, ...)
+end
+
+addLine("[console] ready — scale 1.25x, drag header to move", Color3.fromRGB(120, 255, 150))
+addLine("[console] platform: " .. tostring(UserInputService:GetPlatform()), Color3.fromRGB(150, 180, 220))
+
+-- ==============================================================
+--   LOAD main.lua
+-- ==============================================================
+
+-- Adjust these if your workspace layout is different.
+-- readfile() on executors is relative to the executor's workspace folder.
+local candidates = {
+    "Uis/Ron/main.lua",
+    "Ron/main.lua",
+    "main.lua",
+    "scripts/main.lua",
+    "Uis/main.lua",
+}
+
+local src, foundPath
+if type(readfile) == "function" and type(isfile) == "function" then
+    for _, p in ipairs(candidates) do
+        local okExists, exists = pcall(isfile, p)
+        if okExists and exists then
+            local okRead, body = pcall(readfile, p)
+            if okRead and type(body) == "string" and #body > 0 then
+                src = body
+                foundPath = p
+                break
+            end
+        end
+    end
+else
+    addLine("[err] readfile/isfile not available on this executor", Color3.fromRGB(255, 100, 100))
+    return
+end
+
+if not src then
+    addLine("[err] main.lua not found. Tried:", Color3.fromRGB(255, 100, 100))
+    for _, p in ipairs(candidates) do
+        addLine("  - " .. p, Color3.fromRGB(255, 140, 140))
+    end
+    addLine("Edit `candidates` at the bottom of MobileConsole.lua to match your layout.",
+        Color3.fromRGB(255, 180, 100))
+    return
+end
+
+addLine("[console] loaded " .. foundPath .. " (" .. #src .. " bytes)", Color3.fromRGB(120, 255, 150))
+
+local fn, compileErr = loadstring(src, "=main.lua")
+if not fn then
+    addLine("[compile err] " .. tostring(compileErr), Color3.fromRGB(255, 100, 100))
+    return
+end
+
+local ok, runtimeErr = pcall(fn)
+if not ok then
+    addLine("[runtime err] " .. tostring(runtimeErr), Color3.fromRGB(255, 100, 100))
+    addLine(debug.traceback("", 2) or "", Color3.fromRGB(255, 150, 150))
+else
+    addLine("[console] main.lua finished without error", Color3.fromRGB(120, 255, 150))
+end
+
 
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
@@ -5717,7 +6009,7 @@ function Library:CreateSettingsSection(parent, spec)
             AutomaticSize = Enum.AutomaticSize.Y,
             ZIndex = 5,
         })
-print("USER LINE 5720")
+
         local TextLbl = LibraryRef:CreateInstance("TextLabel", {
             Parent = Inner,
             Name = "section_label",
@@ -11685,7 +11977,7 @@ local Win = Library:Window({
     Title = "Rift",
     Subtitle = "1.0.0",
 })
-print("USER aaa WINDOW")
+
 --[[
     TabCategorie only adds a grey label row in the sidebar. Each AddTab after it counts as
     part of that group until you call TabCategorie again. Write them top to bottom and the
@@ -11702,13 +11994,13 @@ local TabSection = {
     Other = Win:TabCategorie("Other"),
     Misc = Win:AddTab({ Title = "Misc", Icon = "default" }),
 }
-print("USER FAFAFAFAF")
+
 -- Drops in the stock Settings tab (palette, language, font, window stuff, watermark, etc).
 -- If you pass this table you get TabSection.Settings pointing at that tab. Because this
 -- runs after Misc, Settings shows up beside Misc under Other.
 Win:ApplySettings(TabSection)
-print("TAB settings")
+
 -- Line of text under the profile picture. Second argument true = scrub the name to Hidden
 Library:UserSectionSet("Till: Never", true)
-print("USER SEcTTiONB")
+
 return Library

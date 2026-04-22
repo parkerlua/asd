@@ -10041,6 +10041,13 @@ function Library:Window(SizeOrProperties)
     Main.ZIndex = 1
     self._WindowMainFrame = Main
 
+    if LibRef.IsMobile then
+        self:CreateInstance("UIScale", {
+            Parent = Main,
+            Scale = 0.85,
+        })
+    end
+
     local ColorpickerHiddenLayer = self:CreateInstance("Frame", {
         Name = "_ColorpickerHidden",
         Parent = Gui,

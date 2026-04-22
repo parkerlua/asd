@@ -110,7 +110,7 @@ Library._LangIndex = 1
 Library.DevicePlatform = UserInputService:GetPlatform()
 Library.IsMobile = (Library.DevicePlatform == Enum.Platform.Android or Library.DevicePlatform == Enum.Platform.IOS)
 Library.OriginalMinSize = Library.IsMobile and NewVector2(480, 240) or NewVector2(480, 360)
-
+print("TESTMOBILEYeeeee")
 function Library:GetLangIndex()
     local n = #self.Langs
     if n <= 0 then

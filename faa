@@ -9782,21 +9782,24 @@ function Library:Window(SizeOrProperties)
         self._IslandHost.Parent = Gui
     end
 
-    -- Mobile uses UIScale on Main to shrink the whole window. Center math must account
-    -- for the scaled size or the window spawns off-center (and partly off-screen on small viewports).
-    local WindowScale = LibRef.IsMobile and 0.65 or 1
+    -- Mobile uses UIScale on Main to shrink the whole window. Centering uses the post-scale
+    -- size and Camera.ViewportSize directly (not AbsolutePosition, which can be stale the
+    -- same frame Main is created).
+    local WindowScale = LibRef.IsMobile and 0.45 or 1
     local EffectiveW = WindowSize.X.Offset * WindowScale
     local EffectiveH = WindowSize.Y.Offset * WindowScale
+    local Vp = Camera.ViewportSize
+    local SpawnX = MathMax(0, MathFloor((Vp.X - EffectiveW) / 2))
+    local SpawnY = MathMax(0, MathFloor((Vp.Y - EffectiveH) / 2))
 
     local Main = self:CreateInstance("Frame", {
         Name = "Main",
         Parent = Gui,
         Size = WindowSize,
-        Position = NewUDim2(0.5, -EffectiveW / 2, 0.5, -EffectiveH / 2),
+        Position = NewUDim2(0, SpawnX, 0, SpawnY),
         BackgroundColor3 = Theme.Background,
         BorderSizePixel = 0,
     })
-    Main.Position = NewUDim2(0, Main.AbsolutePosition.X, 0, Main.AbsolutePosition.Y)
     Main.ZIndex = 1
     self._WindowMainFrame = Main
 
@@ -9805,6 +9808,18 @@ function Library:Window(SizeOrProperties)
             Parent = Main,
             Scale = WindowScale,
         })
+        -- After UIScale applies, re-center using the actual rendered size.
+        -- Some executors' ViewportSize lags by a frame; task.defer ensures final correction.
+        task.defer(function()
+            if not Main.Parent then return end
+            local vp2 = Camera.ViewportSize
+            local w = Main.AbsoluteSize.X
+            local h = Main.AbsoluteSize.Y
+            Main.Position = NewUDim2(
+                0, MathMax(0, MathFloor((vp2.X - w) / 2)),
+                0, MathMax(0, MathFloor((vp2.Y - h) / 2))
+            )
+        end)
     end
 
     local ColorpickerHiddenLayer = self:CreateInstance("Frame", {

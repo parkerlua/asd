@@ -1,5 +1,5 @@
 --[[ UI ]]
-
+print("TEST OK MADE GUD")
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")

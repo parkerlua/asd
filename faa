@@ -9,6 +9,20 @@ local RunService = game:GetService("RunService")
 local Stats = game:GetService("Stats")
 local MarketplaceService = game:GetService("MarketplaceService")
 local CoreGui = game:GetService("CoreGui")
+local function GuiParent()
+    if gethui then
+        local ok, h = pcall(gethui)
+        if ok and h then return h end
+    end
+    local ok2, _ = pcall(function() return CoreGui:GetChildren() end)
+    if ok2 then return CoreGui end
+    local lp = Players.LocalPlayer
+    if lp then
+        local pg = lp:FindFirstChildOfClass("PlayerGui") or lp:WaitForChild("PlayerGui", 5)
+        if pg then return pg end
+    end
+    return CoreGui
+end
 local Debris = game:GetService("Debris")
 local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
@@ -110,7 +124,7 @@ Library._LangIndex = 1
 Library.DevicePlatform = UserInputService:GetPlatform()
 Library.IsMobile = (Library.DevicePlatform == Enum.Platform.Android or Library.DevicePlatform == Enum.Platform.IOS)
 Library.OriginalMinSize = Library.IsMobile and NewVector2(480, 240) or NewVector2(480, 360)
-print("TESTMOBILEYeeeee")
+
 function Library:GetLangIndex()
     local n = #self.Langs
     if n <= 0 then
@@ -900,7 +914,7 @@ function Library:EnsureNotifyHost()
         if not self._NotifyScreenGui or not self._NotifyScreenGui.Parent then
             self._NotifyScreenGui = self:CreateInstance("ScreenGui", {
                 Name = "RiftNotifications",
-                Parent = gethui and gethui() or CoreGui,
+                Parent = GuiParent(),
                 DisplayOrder = 20000,
                 Enabled = true,
                 ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
@@ -965,7 +979,7 @@ function Library:EnsureIslandHost()
         if not self._NotifyScreenGui or not self._NotifyScreenGui.Parent then
             self._NotifyScreenGui = self:CreateInstance("ScreenGui", {
                 Name = "RiftNotifications",
-                Parent = gethui and gethui() or CoreGui,
+                Parent = GuiParent(),
                 DisplayOrder = 20000,
                 Enabled = true,
                 ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
@@ -3114,7 +3128,7 @@ local function EnsureKeybindList()
 
     local Gui = Library:CreateInstance("ScreenGui", {
         Name = "KeybindList",
-        Parent = gethui and gethui() or CoreGui,
+        Parent = GuiParent(),
         Enabled = false,
         ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
         IgnoreGuiInset = true,
@@ -3503,7 +3517,7 @@ function Library:Watermark(TitleStr)
 
     local Gui = self:CreateInstance("ScreenGui", {
         Name = "RiftWatermark",
-        Parent = gethui and gethui() or CoreGui,
+        Parent = GuiParent(),
         Enabled = true,
         ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
         IgnoreGuiInset = true,
@@ -9606,7 +9620,7 @@ function Library:_MountMobileWindowChrome(WindowObject, buttonsSide)
     end
     local ChromeGui = self:CreateInstance("ScreenGui", {
         Name = "RiftMobileChrome",
-        Parent = gethui and gethui() or CoreGui,
+        Parent = GuiParent(),
         Enabled = true,
         ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
         DisplayOrder = 1000,
@@ -9738,7 +9752,7 @@ function Library:Window(SizeOrProperties)
 
     local Gui = self:CreateInstance("ScreenGui", {
         Name = "\0",
-        Parent = gethui and gethui() or CoreGui,
+        Parent = GuiParent(),
         Enabled = true,
         ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
         IgnoreGuiInset = true,
@@ -11712,4 +11726,3 @@ Win:ApplySettings(TabSection)
 Library:UserSectionSet("Till: Never", true)
 
 return Library
-

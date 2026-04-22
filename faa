@@ -76,7 +76,7 @@ local Library = {
         ["video-pause-white"] = "video-pause-white.png",
     },
 }
-
+print("TEST OK MADE GOOD")
 local Palette = {
     Default = {
         Background = Hex("161616"),
@@ -120,7 +120,7 @@ else
     Library.IsMobile = (Library.DevicePlatform == Enum.Platform.Android or Library.DevicePlatform == Enum.Platform.IOS)
     Library.OriginalMinSize = Library.IsMobile and NewVector2(480, 240) or NewVector2(480, 360)
 end
-
+print("TEST OK MADE GOOD")
 function Library:GetLangIndex()
     local n = #self.Langs
     if n <= 0 then

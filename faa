@@ -610,8 +610,8 @@ local function RegisterFontAsset(FontName, SourceUrl, Weight, Style)
         if type(SourceUrl) ~= "string" or SourceUrl == "" or type(game.HttpGet) ~= "function" then
             return nil
         end
-        local body = game:HttpGet(SourceUrl)
-        if type(body) ~= "string" or #body == 0 then
+        local ok, body = pcall(game.HttpGet, game, SourceUrl)
+        if not ok or type(body) ~= "string" or #body == 0 then
             return nil
         end
         writefile(TtfPath, body)
@@ -794,8 +794,8 @@ function Library:LoadIconManifest()
     for Key, FileName in pairs(self.AssetManifest) do
         local FullPath = AssetDir .. "/" .. FileName
         if not self:FileExists(FullPath) and type(writefile) == "function" then
-            local Body = game:HttpGet(Base .. FileName)
-            if type(Body) == "string" and #Body > 0 then
+            local ok, Body = pcall(game.HttpGet, game, Base .. FileName)
+            if ok and type(Body) == "string" and #Body > 0 then
                 writefile(FullPath, Body)
             end
         end
@@ -9366,8 +9366,8 @@ function Library:HttpIcon(Url)
     end
     local FullPath = AssetDir .. "/_http_" .. tail
     if not self:FileExists(FullPath) then
-        local Body = game:HttpGet(Url)
-        if type(Body) == "string" and #Body > 0 then
+        local ok, Body = pcall(game.HttpGet, game, Url)
+        if ok and type(Body) == "string" and #Body > 0 then
             writefile(FullPath, Body)
         end
     end

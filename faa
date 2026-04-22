@@ -2488,53 +2488,23 @@ function Library:_MountColorpicker(Trigger, GlyphLabel, opts)
         cfg.callback(Color, a)
     end
 
-    local function EffectiveUIScaleFor(inst)
-        local s = 1
-        if typeof(inst) ~= "Instance" then
-            return s
-        end
-        local cur = inst.Parent
-        while cur do
-            local uis = cur:FindFirstChildOfClass("UIScale")
-            if uis and typeof(uis.Scale) == "number" and uis.Scale > 0 then
-                s = s * uis.Scale
-            end
-            if cur:IsA("ScreenGui") then
-                break
-            end
-            cur = cur.Parent
-        end
-        if s <= 0 then s = 1 end
-        return s
-    end
-
     function cfg.update_color()
-        -- The ColorpickerOpenLayer sits under Main, which has UIScale = 0.6 on mobile.
-        -- Empirically AbsolutePosition tracks the rendered (post-scale) top-left but
-        -- AbsoluteSize on the sat/hue/alpha hits the declared (pre-scale) size, so
-        -- `(pointer - AbsPos) / AbsSize` clamps at scale*0.5 on each axis and the usable
-        -- hit zone collapses to the top-left quadrant of the visible square.
-        -- Fix: walk the ancestor chain for UIScale factors and divide the pointer-local
-        -- delta by that scale so the delta matches the declared-size denominator.
+        -- Pointer comes from InputBegan/InputChanged (stored in LastPointerPosition below).
+        -- AbsolutePosition and AbsoluteSize on the sat/hue/alpha frames both track the
+        -- rendered (post-UIScale) bounds, so the ratio `(pointer - AbsPos) / AbsSize`
+        -- works unchanged on PC and mobile. No GuiInset math and no scale compensation.
         local pointer = LastPointerPosition or UserInputService:GetMouseLocation()
 
         if dragging_sat then
             local sat = items.sat
-            local scale = EffectiveUIScaleFor(sat)
-            local dx = (pointer.X - sat.AbsolutePosition.X) / scale
-            local dy = (pointer.Y - sat.AbsolutePosition.Y) / scale
-            s = MathClamp(dx / sat.AbsoluteSize.X, 0, 1)
-            v = 1 - MathClamp(dy / sat.AbsoluteSize.Y, 0, 1)
+            s = MathClamp((pointer.X - sat.AbsolutePosition.X) / sat.AbsoluteSize.X, 0, 1)
+            v = 1 - MathClamp((pointer.Y - sat.AbsolutePosition.Y) / sat.AbsoluteSize.Y, 0, 1)
         elseif dragging_hue then
             local hg = items.hue_gradient
-            local scale = EffectiveUIScaleFor(hg)
-            local dy = (pointer.Y - hg.AbsolutePosition.Y) / scale
-            h = MathClamp(dy / hg.AbsoluteSize.Y, 0, 1)
+            h = MathClamp((pointer.Y - hg.AbsolutePosition.Y) / hg.AbsoluteSize.Y, 0, 1)
         elseif dragging_alpha then
             local ag = items.alpha_gradient
-            local scale = EffectiveUIScaleFor(ag)
-            local dx = (pointer.X - ag.AbsolutePosition.X) / scale
-            a = 1 - MathClamp(dx / ag.AbsoluteSize.X, 0, 1)
+            a = 1 - MathClamp((pointer.X - ag.AbsolutePosition.X) / ag.AbsoluteSize.X, 0, 1)
         end
         cfg.set()
     end

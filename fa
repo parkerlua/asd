@@ -8568,6 +8568,360 @@ end
 --// bootstrap
 
 getgenv().Library = Library
+local CustomerUi = Library:Panel({
+    Size = Dim2(0, 860, 0, 590),
+})
 
+do
+    local Icon = "88390933415082"
+    local Aim = CustomerUi:Page("AimAssist", Icon)
+
+    local Aimbot, Trigger, Rcs = Aim:SubPages(
+        { name = "Aimbot", icon = Icon },
+        { name = "Triggerbot", icon = Icon },
+        { name = "Recoil", icon = Icon }
+    )
+
+    do
+        local M = Aimbot:Section("Main")
+        M:Dropdown({
+            name = "Aim profile",
+            placeholder = "Profile",
+            options = { "Legit", "Semi-rage", "Rage", "Custom" },
+            default = "Legit",
+            flag = "aim_profile",
+            callback = function() end,
+        })
+        M:Dropdown({
+            name = "Hit part",
+            placeholder = "Part",
+            options = { "Head", "Upper torso", "HumanoidRootPart", "Closest to crosshair" },
+            default = "Head",
+            flag = "aim_hit_part",
+            callback = function() end,
+        })
+        M:Slider({
+            name = "FOV",
+            min = 1,
+            max = 360,
+            default = 120,
+            flag = "aim_fov",
+            callback = function() end,
+        })
+        M:Slider({
+            name = "Smoothing",
+            min = 1,
+            max = 100,
+            default = 18,
+            flag = "aim_smoothing",
+            callback = function() end,
+        })
+
+        local DemoSubOptionsToggle = M:Toggle({
+            name = "Enable aimbot",
+            flag = "aim_enabled",
+            default = false,
+            callback = function() end,
+        })
+        local DemoSubOptions = DemoSubOptionsToggle:AddSubOptions({
+            Name = "Aimbot options",
+        })
+        DemoSubOptions:Toggle({
+            Name = "FOV circle",
+            Flag = "aim_sub_fov_circle",
+            Default = true,
+            Callback = function() end,
+        })
+        DemoSubOptions:Toggle({
+            Name = "Draw tracer",
+            Flag = "aim_sub_draw_tracer",
+            Default = false,
+            Callback = function() end,
+        })
+        DemoSubOptions:Toggle({
+            Name = "Auto wall check",
+            Flag = "aim_sub_autowall_check",
+            Default = true,
+            Callback = function() end,
+        })
+        DemoSubOptions:ToggleColorpicker({
+            Name = "Visible check color",
+            Flag = "aim_sub_visible_color_enabled",
+            Default = false,
+            Callback = function() end,
+        }, {
+            Flag = "aim_sub_visible_color",
+            color = Rgb(105, 126, 255),
+            callback = function() end,
+        })
+        M:Paragraph({
+            text = "Paragraph example: add any descriptive text, warning, or usage note directly inside the section.",
+        })
+        M:Button({
+            Name = "Button",
+            Callback = function() end,
+        })
+        M:Button({
+            Name = "Notify",
+            Callback = function()
+                Library:Notify("Message", "This is your message, and it can be of any length or content.", 5)
+            end,
+        })
+        M:Button({
+            Name = "Button",
+            Callback = function() end,
+        }):SubButton({
+            Name = "SubButton",
+            Callback = function() end,
+        })
+
+        local Mo = Aimbot:Section("Modes")
+        Mo:Toggle({
+            name = "Silent aim",
+            flag = "aim_silent",
+            default = false,
+            callback = function() end,
+        })
+        Mo:Toggle({
+            name = "Sticky target",
+            flag = "aim_sticky",
+            default = true,
+            callback = function() end,
+        })
+        Mo:Dropdown({
+            name = "Activation",
+            placeholder = "When",
+            options = { "Hold key", "Toggle key", "While scoped", "Always (risky)" },
+            default = "Hold key",
+            flag = "aim_activation",
+            callback = function() end,
+        })
+
+        local F = Aimbot:Section("Filters")
+        F:Toggle({
+            name = "Team check",
+            flag = "aim_team_check",
+            default = true,
+            callback = function() end,
+        })
+        F:Toggle({
+            name = "Visible only",
+            flag = "aim_visible_only",
+            default = true,
+            callback = function() end,
+        })
+        F:Toggle({
+            name = "Ignore knocked",
+            flag = "aim_ignore_knocked",
+            default = true,
+            callback = function() end,
+        })
+        F:Toggle({
+            name = "Ignore friends",
+            flag = "aim_ignore_friends",
+            default = false,
+            callback = function() end,
+        })
+        F:Dropdown({
+            name = "Target types",
+            placeholder = "Who to aim at",
+            options = { "Enemy players", "Neutral players", "Bots / dummies", "Same game place" },
+            default = { "Enemy players" },
+            Multi = true,
+            flag = "aim_target_types",
+            callback = function() end,
+        })
+
+        local A = Aimbot:Section("Targeting")
+        A:Dropdown({
+            name = "Target priority",
+            placeholder = "Priority",
+            options = { "FOV", "Distance", "Lowest health", "Angle to crosshair" },
+            default = "FOV",
+            flag = "aim_priority",
+            callback = function() end,
+        })
+        A:Slider({
+            name = "Max distance (studs)",
+            min = 50,
+            max = 2500,
+            default = 650,
+            flag = "aim_max_dist",
+            callback = function() end,
+        })
+        A:Slider({
+            name = "Min health % (ignore above)",
+            min = 0,
+            max = 100,
+            default = 0,
+            flag = "aim_min_health_pct",
+            callback = function() end,
+        })
+
+        local P = Aimbot:Section("Prediction")
+        P:Toggle({
+            name = "Movement prediction",
+            flag = "aim_prediction",
+            default = true,
+            callback = function() end,
+        })
+        P:Slider({
+            name = "Prediction strength",
+            min = 0,
+            max = 100,
+            default = 35,
+            flag = "aim_pred_strength",
+            callback = function() end,
+        })
+
+        local V = Aimbot:Section("Overlay")
+        V:Toggle({
+            name = "Draw FOV circle",
+            flag = "aim_draw_fov",
+            default = true,
+            callback = function() end,
+        }):AddColorpicker({
+            flag = "aim_fov_color",
+            color = Palette.Swatches.accent3,
+            alpha = 1,
+            callback = function() end,
+        })
+        V:Slider({
+            name = "FOV circle thickness",
+            min = 1,
+            max = 4,
+            default = 2,
+            decimals = 0,
+            flag = "aim_fov_thickness",
+            callback = function() end,
+        })
+    end
+
+    do
+        local G = Trigger:Section("General")
+        G:Toggle({
+            name = "Enable triggerbot",
+            flag = "trig_enabled",
+            default = false,
+            callback = function() end,
+        })
+        G:Textbox({
+            name = "Trigger key (label)",
+            placeholder = "e.g. E, MouseButton1",
+            default = "E",
+            flag = "trig_key_label",
+            callback = function() end,
+        })
+
+        local B = Trigger:Section("Behavior")
+        B:Slider({
+            name = "Delay (ms)",
+            min = 0,
+            max = 350,
+            default = 40,
+            flag = "trig_delay_ms",
+            callback = function() end,
+        })
+        B:Slider({
+            name = "Hitchance %",
+            min = 0,
+            max = 100,
+            default = 88,
+            flag = "trig_hitchance",
+            callback = function() end,
+        })
+        B:Dropdown({
+            name = "Hit part",
+            placeholder = "Part",
+            options = { "Head", "Upper torso", "HumanoidRootPart" },
+            default = "Head",
+            flag = "trig_hit_part",
+            callback = function() end,
+        })
+        B:Slider({
+            name = "Max distance (studs)",
+            min = 25,
+            max = 1500,
+            default = 400,
+            flag = "trig_max_dist",
+            callback = function() end,
+        })
+        B:Dropdown({
+            name = "Weapon types",
+            placeholder = "Which guns",
+            options = { "Rifle", "SMG", "Shotgun", "Sniper", "Pistol" },
+            default = { "Rifle", "SMG" },
+            Multi = true,
+            flag = "trig_weapon_types",
+            callback = function() end,
+        })
+
+        local F = Trigger:Section("Filters")
+        F:Toggle({
+            name = "Team check",
+            flag = "trig_team_check",
+            default = true,
+            callback = function() end,
+        })
+        F:Toggle({
+            name = "Visible only",
+            flag = "trig_visible_only",
+            default = true,
+            callback = function() end,
+        })
+    end
+
+    do
+        local G = Rcs:Section("Recoil control")
+        G:Toggle({
+            name = "Enable RCS",
+            flag = "rcs_enabled",
+            default = false,
+            callback = function() end,
+        })
+        G:Slider({
+            name = "Vertical strength",
+            min = 0,
+            max = 100,
+            default = 55,
+            flag = "rcs_vertical",
+            callback = function() end,
+        })
+        G:Slider({
+            name = "Horizontal strength",
+            min = 0,
+            max = 100,
+            default = 25,
+            flag = "rcs_horizontal",
+            callback = function() end,
+        })
+        G:Slider({
+            name = "Smoothing",
+            min = 1,
+            max = 100,
+            default = 22,
+            flag = "rcs_smoothing",
+            callback = function() end,
+        })
+    end
+
+    CustomerUi:Page("Weapons", Icon):Section("Coming soon")
+    CustomerUi:Page("Vehicles", Icon):Section("Coming soon")
+    CustomerUi:Page("Players", Icon):Section("Coming soon")
+    CustomerUi:AddDivider()
+    CustomerUi:Page("Friend list", Icon):Section("Coming soon")
+    CustomerUi:Page("Settings", Icon):Section("Coming soon")
+    CustomerUi:Page("Server", Icon):Section("Coming soon")
+    CustomerUi:Page("Misc", Icon):Section("Coming soon")
+    CustomerUi:AddDivider()
+    CustomerUi:Page("Lua system", Icon):Section("Coming soon")
+    CustomerUi:Page("Executor", Icon):Section("Coming soon")
+    CustomerUi:Page("Main", Icon):Section("Coming soon")
+    Library:Notify("Message", "Hi sarr, welcum to the ui sarr!", 55555)
+    Library:AddPreset('{"flagnumber2":false,"trig_weapon_types":["Rifle","SMG"],"trig_max_dist":400,"aim_activation":"Hold key","aim_profile":"Legit","aim_fov_color":{"Color":"d5551f","Transparency":0},"menu_styles_window":{"Color":"1b1b21","Transparency":0},"aim_ignore_friends":false,"menu_styles_tab_active":{"Color":"202028","Transparency":0},"menu_styles_color_2":{"Color":"ea2922","Transparency":0},"aim_visible_only":true,"trig_team_check":true,"menu_styles_color":{"Color":"4a2329","Transparency":0},"menu_styles_control":{"Color":"2c2c36","Transparency":0},"flagnumber4":false,"flagnumber5":{"Color":"697eff","Transparency":0},"aim_ignore_knocked":true,"flagnumber3":true,"rcs_enabled":false,"aim_draw_fov":true,"trig_hit_part":"Head","aim_smoothing":18,"menu_styles_surface":{"Color":"22222a","Transparency":0},"trig_key_label":"E","menu_styles_text":{"Color":"ffffff","Transparency":0},"aim_sticky":true,"trig_hitchance":88,"aim_hit_part":"Head","rcs_vertical":55,"flagnumber1":true,"trig_visible_only":true,"aim_team_check":true,"menu_styles_text_muted":{"Color":"636373","Transparency":0},"aim_target_types":["Enemy players"],"aim_silent":false,"aim_max_dist":650,"aim_fov":120,"aim_min_health_pct":0,"aim_prediction":true,"aim_pred_strength":35,"rcs_smoothing":22,"menu_styles_sidebar":{"Color":"15151a","Transparency":0},"aim_priority":"FOV","aim_fov_thickness":2,"trig_delay_ms":40,"aim_enabled":true,"rcs_horizontal":25,"trig_enabled":false,"menu_styles_color_3":{"Color":"d5551f","Transparency":0}}', "Legit")
+
+
+
+end
 return Library
 

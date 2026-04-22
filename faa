@@ -2488,43 +2488,20 @@ function Library:_MountColorpicker(Trigger, GlyphLabel, opts)
         cfg.callback(Color, a)
     end
 
-    -- Slider-style drag: Heartbeat polling off GetMouseLocation for mouse, plus a
-    -- UIS.InputChanged listener for Touch. Slider uses this exact pattern and works
-    -- on both PC and mobile, so we match it 1:1 here to stop fighting the input model.
-    local cpMoveConn, cpEndConn
-    local cpUsesHeartbeat = false
-
-    local function StopCpDrag()
-        dragging_sat = false
-        dragging_hue = false
-        dragging_alpha = false
-        LastPointerPosition = nil
-        if cpMoveConn then
-            cpMoveConn:Disconnect()
-            cpMoveConn = nil
-        end
-        if cpEndConn then
-            cpEndConn:Disconnect()
-            cpEndConn = nil
-        end
-    end
-
     function cfg.update_color()
-        -- Ratio is (pointer - AbsolutePosition) / AbsoluteSize on the target frame.
-        -- Both pointer (from input.Position or GetMouseLocation) and AbsolutePosition
-        -- share the same viewport coord system, so no GuiInset or UIScale math is needed.
+        -- Same math on every platform: pointer minus the target's AbsolutePosition,
+        -- divided by its AbsoluteSize. GuiInset is subtracted so the pointer lines up
+        -- with AbsolutePosition when the host ScreenGui is IgnoreGuiInset = true.
         local pointer = LastPointerPosition or UserInputService:GetMouseLocation()
-
+        local offset = NewVector2(pointer.X, pointer.Y - GuiInset)
         if dragging_sat then
-            local sat = items.sat
-            s = MathClamp((pointer.X - sat.AbsolutePosition.X) / sat.AbsoluteSize.X, 0, 1)
-            v = 1 - MathClamp((pointer.Y - sat.AbsolutePosition.Y) / sat.AbsoluteSize.Y, 0, 1)
+            s = MathClamp((offset - items.sat.AbsolutePosition).X / items.sat.AbsoluteSize.X, 0, 1)
+            v = 1 - MathClamp((offset - items.sat.AbsolutePosition).Y / items.sat.AbsoluteSize.Y, 0, 1)
         elseif dragging_hue then
-            local hg = items.hue_gradient
-            h = MathClamp((pointer.Y - hg.AbsolutePosition.Y) / hg.AbsoluteSize.Y, 0, 1)
+            h = MathClamp((offset - items.hue_gradient.AbsolutePosition).Y / items.hue_gradient.AbsoluteSize.Y, 0, 1)
         elseif dragging_alpha then
-            local ag = items.alpha_gradient
-            a = 1 - MathClamp((pointer.X - ag.AbsolutePosition.X) / ag.AbsoluteSize.X, 0, 1)
+            a = 1 -
+                MathClamp((offset - items.alpha_gradient.AbsolutePosition).X / items.alpha_gradient.AbsoluteSize.X, 0, 1)
         end
         cfg.set()
     end
@@ -2537,10 +2514,30 @@ function Library:_MountColorpicker(Trigger, GlyphLabel, opts)
         cfg.set_visible(cfg.open)
     end)
 
+    LibRef:Connection(UserInputService.InputChanged, function(input)
+        if not (dragging_sat or dragging_hue or dragging_alpha) then
+            return
+        end
+        if input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch
+        then
+            LastPointerPosition = input.Position
+            cfg.update_color()
+        end
+    end)
+
+    LibRef:Connection(UserInputService.InputEnded, function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging_sat = false
+            dragging_hue = false
+            dragging_alpha = false
+            LastPointerPosition = nil
+        end
+    end)
+
     local function BeginDrag(target, input)
         cfg._suppress_colorpicker_outside_close = true
         cfg.setRainbow(false)
-        StopCpDrag()
         if target == "sat" then
             dragging_sat = true
         elseif target == "hue" then
@@ -2548,43 +2545,10 @@ function Library:_MountColorpicker(Trigger, GlyphLabel, opts)
         elseif target == "alpha" then
             dragging_alpha = true
         end
-
-        cpUsesHeartbeat = not input
-            or input.UserInputType == Enum.UserInputType.MouseButton1
-            or input.UserInputType == Enum.UserInputType.MouseMovement
-
         if input and input.Position then
             LastPointerPosition = input.Position
         end
         cfg.update_color()
-
-        if cpUsesHeartbeat then
-            cpMoveConn = RunService.Heartbeat:Connect(function()
-                if not (dragging_sat or dragging_hue or dragging_alpha) then
-                    return
-                end
-                LastPointerPosition = UserInputService:GetMouseLocation()
-                cfg.update_color()
-            end)
-        else
-            cpMoveConn = UserInputService.InputChanged:Connect(function(moveInput)
-                if not (dragging_sat or dragging_hue or dragging_alpha) then
-                    return
-                end
-                if moveInput.UserInputType == Enum.UserInputType.Touch then
-                    LastPointerPosition = moveInput.Position
-                    cfg.update_color()
-                end
-            end)
-        end
-
-        cpEndConn = UserInputService.InputEnded:Connect(function(endInput)
-            if endInput.UserInputType == Enum.UserInputType.MouseButton1
-                or endInput.UserInputType == Enum.UserInputType.Touch
-            then
-                StopCpDrag()
-            end
-        end)
     end
 
     LibRef:Connection(items.alpha_gradient.InputBegan, function(input)

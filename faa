@@ -9064,6 +9064,23 @@ function Library:CreateSettingsSection(parent, spec)
             if w <= 1 then
                 return false
             end
+            -- Row.AbsoluteSize.X is in RENDERED pixels (UIScale already applied on ancestors),
+            -- but btn.Size.Offset is UNSCALED (UIScale will scale it again at render). Walk the
+            -- ancestor chain, multiply the UIScale factors, and divide out before we set Size.
+            local scale = 1
+            local cur = Row.Parent
+            while cur do
+                local uis = cur:FindFirstChildOfClass("UIScale")
+                if uis and typeof(uis.Scale) == "number" and uis.Scale > 0 then
+                    scale = scale * uis.Scale
+                end
+                if cur:IsA("ScreenGui") then
+                    break
+                end
+                cur = cur.Parent
+            end
+            if scale <= 0 then scale = 1 end
+            w = w / scale
             if n == 1 then
                 btnRefs[1].Size = NewUDim2(0, w, 0, multiBtnH)
                 return true

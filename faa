@@ -3121,6 +3121,13 @@ local function EnsureKeybindList()
         DisplayOrder = 15000,
     })
 
+    if Library.IsMobile then
+        Library:CreateInstance("UIScale", {
+            Parent = Gui,
+            Scale = 0.85,
+        })
+    end
+
     local Root = Library:CreateInstance("Frame", {
         Name = "KeybindListRoot",
         Parent = Gui,
@@ -3509,6 +3516,13 @@ function Library:Watermark(TitleStr)
         ResetOnSpawn = false,
         DisplayOrder = 14990,
     })
+
+    if self.IsMobile then
+        self:CreateInstance("UIScale", {
+            Parent = Gui,
+            Scale = 0.85,
+        })
+    end
 
     local ViewportW = Camera.ViewportSize.X
     local Card = self:CreateInstance("Frame", {
@@ -9785,7 +9799,7 @@ function Library:Window(SizeOrProperties)
     -- Mobile uses UIScale on Main to shrink the whole window. Centering uses the post-scale
     -- size and Camera.ViewportSize directly (not AbsolutePosition, which can be stale the
     -- same frame Main is created).
-    local WindowScale = LibRef.IsMobile and 0.45 or 1
+    local WindowScale = LibRef.IsMobile and 0.6 or 1
     local EffectiveW = WindowSize.X.Offset * WindowScale
     local EffectiveH = WindowSize.Y.Offset * WindowScale
     local Vp = Camera.ViewportSize

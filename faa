@@ -2489,15 +2489,12 @@ function Library:_MountColorpicker(Trigger, GlyphLabel, opts)
     end
 
     function cfg.update_color()
-        -- Pointer comes from the last InputChanged event (Mouse or Touch). On desktop the
-        -- PC mouse pipeline returns coords below the top-bar inset, so GuiInset is subtracted
-        -- to line up with AbsolutePosition (ScreenGui is IgnoreGuiInset = true). Mobile's touch
-        -- pipeline already reports coords in the same space as AbsolutePosition, so skip it
-        -- there (subtracting a non-zero inset on mobile made the square register as "tap middle
-        -- == max value / top-right").
+        -- InputObject.Position (Mouse or Touch, stored in LastPointerPosition by the
+        -- InputBegan/InputChanged wiring below) sits in the same coord system as
+        -- AbsolutePosition, so we use it directly with no GuiInset math. Matches the
+        -- examples/Lib colorpicker, which also subtracts nothing and works on both platforms.
         local pointer = LastPointerPosition or UserInputService:GetMouseLocation()
-        local insetAdjust = LibRef.IsMobile and 0 or GuiInset
-        local offset = NewVector2(pointer.X, pointer.Y - insetAdjust)
+        local offset = NewVector2(pointer.X, pointer.Y)
         if dragging_sat then
             s = MathClamp((offset - items.sat.AbsolutePosition).X / items.sat.AbsoluteSize.X, 0, 1)
             v = 1 - MathClamp((offset - items.sat.AbsolutePosition).Y / items.sat.AbsoluteSize.Y, 0, 1)

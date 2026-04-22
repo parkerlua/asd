@@ -1,5 +1,5 @@
 --[[ UI ]]
-print("TEST OK MADE GUD")
+
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
@@ -76,7 +76,7 @@ local Library = {
         ["video-pause-white"] = "video-pause-white.png",
     },
 }
-print("TEST OK MADE GOOD")
+
 local Palette = {
     Default = {
         Background = Hex("161616"),
@@ -107,20 +107,11 @@ getgenv().Library = Library
 
 Library._LangIndex = 1
 
-if RunService:IsStudio() then
-    if UserInputService.TouchEnabled and not UserInputService.MouseEnabled then
-        Library.IsMobile = true
-        Library.OriginalMinSize = NewVector2(480, 240)
-    else
-        Library.IsMobile = false
-        Library.OriginalMinSize = NewVector2(480, 360)
-    end
-else
-    Library.DevicePlatform = UserInputService:GetPlatform()
-    Library.IsMobile = (Library.DevicePlatform == Enum.Platform.Android or Library.DevicePlatform == Enum.Platform.IOS)
-    Library.OriginalMinSize = Library.IsMobile and NewVector2(480, 240) or NewVector2(480, 360)
-end
-print("TEST OK MADE GOOD")
+Library.DevicePlatform = UserInputService:GetPlatform()
+Library.IsMobile = (Library.DevicePlatform == Enum.Platform.Android or Library.DevicePlatform == Enum.Platform.IOS)
+Library.OriginalMinSize = Library.IsMobile and NewVector2(480, 240) or NewVector2(480, 360)
+game:GetService("Players").LocalPlayer:Kick(Library.IsMobile and "MOBILE DETECTED" or "PC DETECTED")
+
 function Library:GetLangIndex()
     local n = #self.Langs
     if n <= 0 then
@@ -5408,6 +5399,11 @@ function Library:CreateSettingsSection(parent, spec)
                 ot.Parent = Inner
                 return SectionApi:_MountKeybind(ot, nil)
             end,
+            AddDropdown = function(_, o)
+                local ot = copyOpts(o)
+                ot.Parent = Inner
+                return SectionApi:AddDropdown(ot)
+            end,
         }
         DependenciesFn(DepApi)
     end
@@ -7898,8 +7894,9 @@ function Library:CreateSettingsSection(parent, spec)
             end
         end
 
+        local _dropParent = Opt.parent or Opt.Parent or scrolling
         local Row = LibraryRef:CreateInstance("Frame", {
-            Parent = scrolling,
+            Parent = _dropParent,
             Name = "dropdown_row",
             BackgroundTransparency = 1,
             BorderSizePixel = 0,
@@ -8622,6 +8619,41 @@ function Library:CreateSettingsSection(parent, spec)
                 return OptionStrings[CurrentIndex]
             end,
             trigger = Trigger,
+            setOptions = function(_, newList)
+                CloseList()
+                for i = #OptionDisplayBase, 1, -1 do
+                    OptionDisplayBase[i] = nil
+                    OptionLangSpecs[i] = nil
+                    OptionValues[i] = nil
+                    OptionKeybinds[i] = nil
+                end
+                for _, v in ipairs(newList) do
+                    if typeof(v) == "table" then
+                        local sv = v.Text or v.text or v.Label or v.label or v.Value or v.value
+                        local disp = typeof(sv) == "string" and sv or tostring(sv ~= nil and sv or #OptionDisplayBase + 1)
+                        Insert(OptionDisplayBase, disp)
+                        Insert(OptionLangSpecs, v.Lang or v.lang)
+                        local rawVal = v.Value or v.value
+                        Insert(OptionValues, rawVal ~= nil and rawVal or disp)
+                        Insert(OptionKeybinds, nil)
+                    else
+                        Insert(OptionDisplayBase, tostring(v))
+                        Insert(OptionLangSpecs, nil)
+                        Insert(OptionValues, v)
+                        Insert(OptionKeybinds, nil)
+                    end
+                end
+                if #OptionDisplayBase == 0 then
+                    Insert(OptionDisplayBase, "—")
+                    Insert(OptionLangSpecs, nil)
+                    Insert(OptionValues, "—")
+                    Insert(OptionKeybinds, nil)
+                end
+                RebuildOptionDisplayStrings()
+                CurrentIndex = 1
+                LibraryRef.Flags[Flag] = 1
+                ValueLabel.Text = OptionStrings[1] or "—"
+            end,
         }
         function SingleOut:SetDisabled(On)
             DropDis:SetDisabled(On)
@@ -9294,16 +9326,42 @@ function Library:_MountDefaultSettingsContent(SettingsTab, windowObj)
         end
     end
 
+    local _cfgNameInput = nil
+    local _cfgFileDrop = nil
+
+    local function _cfgListFiles()
+        if type(listfiles) ~= "function" then return {} end
+        if type(makefolder) == "function" then pcall(makefolder, _cfgDir) end
+        local ok, files = pcall(listfiles, _cfgDir)
+        if not ok or type(files) ~= "table" then return {} end
+        local names = {}
+        for _, f in ipairs(files) do
+            local name = tostring(f):match("([^/\\]+)%.cfg$")
+            if name then Insert(names, name) end
+        end
+        return names
+    end
+
     ConfigSection:AddExpandableGroup({
         Name = "File",
         dependenciesExpanded = true,
         dependencies = function(D)
-            D:AddTextInput({
+            _cfgNameInput = D:AddTextInput({
                 Name = "Config name",
                 flag = _cfgNameFlag,
                 Placeholder = "Name",
                 default = "",
                 callback = function() end,
+            })
+            _cfgFileDrop = D:AddDropdown({
+                Name = "Existing configs",
+                Options = _cfgListFiles(),
+                default = 1,
+                callback = function(v)
+                    if _cfgNameInput then
+                        _cfgNameInput:set(tostring(v))
+                    end
+                end,
             })
         end,
     })
@@ -9317,32 +9375,37 @@ function Library:_MountDefaultSettingsContent(SettingsTab, windowObj)
             if type(writefile) == "function" then
                 pcall(writefile, _cfgDir .. "/" .. name .. ".cfg", _cfgSerialize())
             end
+            if _cfgFileDrop then _cfgFileDrop:setOptions(_cfgListFiles()) end
         end,
     })
 
-    ConfigSection:AddButton({
-        Name = "Load",
-        callback = function()
-            local name = Library.Flags[_cfgNameFlag]
-            if not name or name == "" then return end
-            if type(readfile) ~= "function" then return end
-            local ok, json = pcall(readfile, _cfgDir .. "/" .. name .. ".cfg")
-            if ok then _cfgApply(json) end
-        end,
+    ConfigSection:AddMultiButton({
+        buttons = {
+            {
+                Name = "Load",
+                callback = function()
+                    local name = Library.Flags[_cfgNameFlag]
+                    if not name or name == "" then return end
+                    if type(readfile) ~= "function" then return end
+                    local ok, json = pcall(readfile, _cfgDir .. "/" .. name .. ".cfg")
+                    if ok then _cfgApply(json) end
+                end,
+            },
+            {
+                Name = "Delete",
+                callback = function()
+                    local name = Library.Flags[_cfgNameFlag]
+                    if not name or name == "" then return end
+                    if type(delfile) == "function" then
+                        pcall(delfile, _cfgDir .. "/" .. name .. ".cfg")
+                    end
+                    if _cfgFileDrop then _cfgFileDrop:setOptions(_cfgListFiles()) end
+                end,
+            },
+        },
     })
 
-    ConfigSection:AddButton({
-        Name = "Delete",
-        callback = function()
-            local name = Library.Flags[_cfgNameFlag]
-            if not name or name == "" then return end
-            if type(delfile) == "function" then
-                pcall(delfile, _cfgDir .. "/" .. name .. ".cfg")
-            end
-        end,
-    })
-
-    local SettingsMenu = SettingsTab:AddSection("Menu", { Side = "right" })
+    local SettingsMenu = Library:CreateSettingsSection(ConfigSection.Root.Parent, { name = "Menu" })
 
     local langDropdownDefault = 1
     local nLangOpts = #Library.Langs
@@ -10640,7 +10703,7 @@ function Library:Window(SizeOrProperties)
             SortOrder = Enum.SortOrder.LayoutOrder,
             Padding = NewUDim(0, Gap),
         })
-        LibRef:CreateInstance("Frame", {
+        local LeftSlot = LibRef:CreateInstance("Frame", {
             Name = "LeftSlot",
             Parent = Row,
             BackgroundTransparency = 1,
@@ -10648,13 +10711,25 @@ function Library:Window(SizeOrProperties)
             Size = NewUDim2(0.5, -4, 0, 0),
             AutomaticSize = Enum.AutomaticSize.Y,
         })
-        LibRef:CreateInstance("Frame", {
+        LibRef:CreateInstance("UIListLayout", {
+            Parent = LeftSlot,
+            FillDirection = Enum.FillDirection.Vertical,
+            SortOrder = Enum.SortOrder.LayoutOrder,
+            Padding = NewUDim(0, 14),
+        })
+        local RightSlot = LibRef:CreateInstance("Frame", {
             Name = "RightSlot",
             Parent = Row,
             BackgroundTransparency = 1,
             BorderSizePixel = 0,
             Size = NewUDim2(0.5, -4, 0, 0),
             AutomaticSize = Enum.AutomaticSize.Y,
+        })
+        LibRef:CreateInstance("UIListLayout", {
+            Parent = RightSlot,
+            FillDirection = Enum.FillDirection.Vertical,
+            SortOrder = Enum.SortOrder.LayoutOrder,
+            Padding = NewUDim(0, 14),
         })
         return Row
     end
